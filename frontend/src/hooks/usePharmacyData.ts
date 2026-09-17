@@ -1,11 +1,24 @@
 import { useEffect, useState } from 'react'
 import { getDb } from '../db/database'
-import { getCities, getPharmaciesForCity } from '../db/queries'
-import type { Pharmacy, Position } from '../data/pharmacies'
+import {
+  filterPharmacies,
+  getCities,
+  getPharmacies,
+  getQuartierPoints,
+} from '../db/queries'
+import type {
+  City,
+  Pharmacy,
+  PharmacyFilters,
+  Position,
+  QuartierPoint,
+} from '../data/pharmacies'
 
 export interface PharmacyData {
-  cities: string[]
+  cities: City[]
+  quartiers: string[]
   pharmacies: Pharmacy[]
+  quartierPoints: QuartierPoint[]
   loading: boolean
   error: string | null
 }
@@ -13,10 +26,13 @@ export interface PharmacyData {
 export function usePharmacyData(
   city: string,
   position: Position | null,
+  filters: PharmacyFilters,
 ): PharmacyData {
   const [state, setState] = useState<PharmacyData>({
     cities: [],
+    quartiers: [],
     pharmacies: [],
+    quartierPoints: [],
     loading: true,
     error: null,
   })
@@ -28,12 +44,22 @@ export function usePharmacyData(
     getDb()
       .then((db) => {
         const cities = getCities(db)
-        const activeCity = city || cities[0]
-        const pharmacies = activeCity
-          ? getPharmaciesForCity(db, activeCity, position)
+        const quartierPoints = getQuartierPoints(db, city)
+        const quartiers = city
+          ? [...new Set(quartierPoints.map((point) => point.quartier))].sort((a, b) =>
+              a.localeCompare(b),
+            )
           : []
+        const pharmacies = filterPharmacies(getPharmacies(db, city, position), filters)
         if (!cancelled) {
-          setState({ cities, pharmacies, loading: false, error: null })
+          setState({
+            cities,
+            quartiers,
+            pharmacies,
+            quartierPoints,
+            loading: false,
+            error: null,
+          })
         }
       })
       .catch((error: unknown) => {
@@ -52,7 +78,7 @@ export function usePharmacyData(
     return () => {
       cancelled = true
     }
-  }, [city, position])
+  }, [city, position, filters])
 
   return state
 }

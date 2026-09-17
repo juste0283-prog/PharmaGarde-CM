@@ -1,5 +1,12 @@
 import type { Database } from 'sql.js'
-import type { Pharmacy, Position, ReliabilityStatus } from '../data/pharmacies'
+import type {
+  City,
+  Pharmacy,
+  PharmacyFilters,
+  Position,
+  QuartierPoint,
+  ReliabilityStatus,
+} from '../data/pharmacies'
 import { execAll, type Row } from './database'
 
 const MINUTE = 60_000
@@ -8,32 +15,73 @@ const HOUR = 3_600_000
 const CONFIRMED_WINDOW = 12 * HOUR
 const VERIFIED_WINDOW = 72 * HOUR
 
-export function getCities(db: Database): string[] {
-  return execAll(db, 'SELECT name FROM cities ORDER BY is_pilot DESC, name').map(
-    (row) => String(row.name),
-  )
+export function getCities(db: Database): City[] {
+  return execAll(
+    db,
+    `SELECT name, region, latitude, longitude
+     FROM cities
+     ORDER BY is_pilot DESC, name`,
+  ).map((row) => ({
+    name: String(row.name),
+    region: String(row.region),
+    lat: Number(row.latitude),
+    lng: Number(row.longitude),
+  }))
 }
 
-export function getPharmaciesForCity(
+export function getQuartiers(db: Database, cityName: string): string[] {
+  const safeCity = cityName.replace(/'/g, "''")
+  return execAll(
+    db,
+    `SELECT DISTINCT p.quartier
+     FROM pharmacies p
+     JOIN cities c ON c.id = p.city_id
+     WHERE c.name = '${safeCity}'
+     ORDER BY p.quartier`,
+  ).map((row) => String(row.quartier))
+}
+
+export function getQuartierPoints(db: Database, cityName: string): QuartierPoint[] {
+  const safeCity = cityName.replace(/'/g, "''")
+  const where = cityName ? `WHERE c.name = '${safeCity}'` : ''
+  return execAll(
+    db,
+    `SELECT c.name AS city, p.quartier,
+            AVG(p.latitude) AS lat, AVG(p.longitude) AS lng
+     FROM pharmacies p
+     JOIN cities c ON c.id = p.city_id
+     ${where}
+     GROUP BY c.name, p.quartier
+     ORDER BY c.name, p.quartier`,
+  ).map((row) => ({
+    city: String(row.city),
+    quartier: String(row.quartier),
+    lat: Number(row.lat),
+    lng: Number(row.lng),
+  }))
+}
+
+export function getPharmacies(
   db: Database,
   cityName: string,
   position: Position | null,
 ): Pharmacy[] {
   const weekday = new Date().getDay()
   const safeCity = cityName.replace(/'/g, "''")
+  const where = cityName ? `WHERE c.name = '${safeCity}'` : ''
 
   const pharmacyRows = execAll(
     db,
     `
     SELECT p.id, p.name, p.quartier, p.address, p.phone,
            p.latitude, p.longitude, p.source, p.verified, p.last_updated,
-           c.name AS city,
+           c.name AS city, c.region,
            ds.start AS garde_start, ds.end AS garde_end
     FROM pharmacies p
     JOIN cities c ON c.id = p.city_id
     LEFT JOIN duty_schedules ds
       ON ds.pharmacy_id = p.id AND ds.weekday = ${weekday}
-    WHERE c.name = '${safeCity}'
+    ${where}
     ORDER BY p.name
   `,
   )
@@ -85,16 +133,22 @@ export function getPharmaciesForCity(
       id,
       name: String(row.name),
       city: String(row.city),
+      region: String(row.region),
       quartier: String(row.quartier),
       address: String(row.address),
       phone: String(row.phone),
+      latitude: Number(row.latitude),
+      longitude: Number(row.longitude),
+      source: String(row.source),
       distanceKm:
         position === null
           ? null
-          : Math.round(haversineKm(position, {
-              lat: Number(row.latitude),
-              lng: Number(row.longitude),
-            }) * 10) / 10,
+          : Math.round(
+              haversineKm(position, {
+                lat: Number(row.latitude),
+                lng: Number(row.longitude),
+              }) * 10,
+            ) / 10,
       status,
       lastUpdated: lastUpdatedPhrase,
       currentGarde:
@@ -105,8 +159,25 @@ export function getPharmaciesForCity(
   })
 
   return pharmacies.sort((a, b) => {
-    if (position !== null) return (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity)
+    if (position !== null) {
+      return (
+        (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity) ||
+        STATUS_RANK[a.status] - STATUS_RANK[b.status]
+      )
+    }
     return STATUS_RANK[a.status] - STATUS_RANK[b.status] || a.name.localeCompare(b.name)
+  })
+}
+
+export function filterPharmacies(
+  pharmacies: Pharmacy[],
+  filters: PharmacyFilters,
+): Pharmacy[] {
+  return pharmacies.filter((pharmacy) => {
+    if (filters.quartier && pharmacy.quartier !== filters.quartier) return false
+    if (filters.statuses.length > 0 && !filters.statuses.includes(pharmacy.status)) return false
+    if (filters.confirmedOnly && pharmacy.status !== 'confirmee') return false
+    return true
   })
 }
 

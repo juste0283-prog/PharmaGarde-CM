@@ -9,17 +9,47 @@ export interface Position {
   lng: number
 }
 
+export interface City {
+  name: string
+  region: string
+  lat: number
+  lng: number
+}
+
+export interface QuartierPoint {
+  city: string
+  quartier: string
+  lat: number
+  lng: number
+}
+
 export interface Pharmacy {
   id: number
   name: string
   city: string
+  region: string
   quartier: string
   address: string
   phone: string
+  latitude: number
+  longitude: number
+  source: string
   distanceKm: number | null
   status: ReliabilityStatus
   lastUpdated: string
   currentGarde: string
+}
+
+export interface PharmacyFilters {
+  quartier: string
+  statuses: ReliabilityStatus[]
+  confirmedOnly: boolean
+}
+
+export const EMPTY_FILTERS: PharmacyFilters = {
+  quartier: '',
+  statuses: [],
+  confirmedOnly: false,
 }
 
 export const STATUS_META: Record<

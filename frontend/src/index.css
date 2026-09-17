@@ -12,3 +12,107 @@ html {
 body {
   @apply bg-slate-50 text-slate-900 antialiased;
 }
+
+/* Carte Leaflet — marqueurs et popups */
+.pg-marker {
+  background: transparent;
+  border: none;
+}
+
+.pg-pin {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 30px;
+}
+
+.pg-pin::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--color-emerald-800);
+  clip-path: polygon(50% 0, 100% 34%, 86% 82%, 50% 100%, 14% 82%, 0 34%);
+}
+
+.pg-pin span {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  padding-bottom: 6px;
+}
+
+.pg-pin i {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+.pg-user {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: var(--color-sky-500);
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.4);
+}
+
+.pg-popup {
+  max-width: 240px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-slate-700);
+}
+
+.pg-popup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.pg-popup-head strong {
+  color: var(--color-slate-900);
+  font-size: 13px;
+}
+
+.pg-info {
+  margin: 2px 0;
+}
+
+.pg-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--color-slate-200);
+}
+
+.pg-actions a {
+  flex: 1;
+  text-align: center;
+  padding: 5px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pg-actions a:first-child {
+  background: var(--color-emerald-600);
+  color: #fff;
+}
+
+.pg-actions a:last-child {
+  border: 1px solid var(--color-slate-300);
+  color: var(--color-slate-700);
+}
