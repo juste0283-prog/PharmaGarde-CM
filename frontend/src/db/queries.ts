@@ -814,6 +814,55 @@ export function setScheduleStatus(
   logAudit(db, actor, 'programmation', `schedule:${scheduleId}`, status)
 }
 
+export function setDutyDay(
+  db: Database,
+  pharmacyId: number,
+  weekday: number,
+  patch: { enabled: boolean; start?: string | null; end?: string | null },
+  actor: string,
+): void {
+  const day = Number(weekday)
+  const existing = execFirst(
+    db,
+    `SELECT id, start, end FROM duty_schedules WHERE pharmacy_id = ? AND weekday = ?`,
+    [pharmacyId, day],
+  )
+  const start = patch.start != null && patch.start !== '' ? String(patch.start).slice(0, 5) : null
+  const end = patch.end != null && patch.end !== '' ? String(patch.end).slice(0, 5) : null
+  const source = `Planning des gardes modifié par ${actor}`
+  if (patch.enabled) {
+    if (existing) {
+      db.run(`UPDATE duty_schedules SET start = ?, end = ?, status = 'publie', source = ? WHERE id = ?`, [
+        start ?? String(existing.start),
+        end ?? String(existing.end),
+        source,
+        Number(existing.id),
+      ])
+    } else {
+      db.run(
+        `INSERT INTO duty_schedules (pharmacy_id, weekday, start, end, status, source, created_at)
+         VALUES (?, ?, ?, ?, 'publie', ?, ?)`,
+        [pharmacyId, day, start ?? '18:00', end ?? '08:00', source, new Date().toISOString()],
+      )
+    }
+  } else if (existing) {
+    db.run(`UPDATE duty_schedules SET status = 'draft', source = ? WHERE id = ?`, [
+      source,
+      Number(existing.id),
+    ])
+  } else {
+    return
+  }
+  saveDb(db)
+  logAudit(
+    db,
+    actor,
+    'planification_maj',
+    `pharmacy:${pharmacyId}:weekday:${day}`,
+    patch.enabled ? `publié ${start ?? '—'}→${end ?? '—'}` : 'garde désactivée',
+  )
+}
+
 export function updatePharmacyProfile(
   db: Database,
   pharmacyId: number,

@@ -35,15 +35,17 @@ itinéraire et signalement des incohérences.
   charges — 4 espaces distincts :
   - **Visiteur / Utilisateur** (site public) : rechercher, filtrer, localiser, appeler, itinéraire
     et signaler une anomalie ;
-  - **Pharmacie** : gérer son profil et ses horaires, publier/masquer son planning de garde,
-    confirmer sa présence (horodatée) et traiter les alertes (signalements reçus) ;
+  - **Pharmacie** : la pharmacie **décide elle-même, chaque jour, si elle est de garde et de quelle
+    heure à quelle heure** (auto-service du planning hebdomadaire), gère son profil et ses
+    coordonnées, confirme sa présence (horodatée) et traite les alertes (signalements reçus) ;
   - **Administrateur** (ville/zone assignée) : valider les pharmacies et comptes, gérer les gardes,
     modérer les signalements, statistiques locales ;
   - **Super administrateur** : plateforme entière — toutes les villes, rôles et comptes,
     paramètres & sécurité, journal d'audit, arbitrage des signalements.
 
-  Connexion en mode démonstration (choix du profil, sans mot de passe), session persistante entre
-  les visites et journalisation de toutes les actions dans le journal d'audit.
+  Interface professionnelle (sidebar de navigation, tableaux de bord, badges de statut), connexion
+  en mode démonstration sans mot de passe, session persistante entre les visites et
+  journalisation de toutes les actions dans le journal d'audit.
 
 ---
 
