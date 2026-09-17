@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import Header from './components/Header'
 import Hero from './components/Hero'
 import HowItWorks from './components/HowItWorks'
@@ -9,6 +9,7 @@ import ResultsView, { type ViewMode } from './components/ResultsView'
 import { usePharmacyData } from './hooks/usePharmacyData'
 import {
   EMPTY_FILTERS,
+  type Pharmacy,
   type PharmacyFilters,
   type Position,
 } from './data/pharmacies'
@@ -18,26 +19,35 @@ export default function App() {
   const [position, setPosition] = useState<Position | null>(null)
   const [view, setView] = useState<ViewMode>('liste')
   const [filters, setFilters] = useState<PharmacyFilters>(EMPTY_FILTERS)
-  const { cities, quartiers, pharmacies, loading, error } = usePharmacyData(
-    city,
-    position,
-    filters,
-  )
+  const [routeTargetId, setRouteTargetId] = useState<number | null>(null)
+  const { cities, quartiers, pharmacies, quartierPoints, loading, error } =
+    usePharmacyData(city, position, filters)
 
-  const defaultCity = cities[0]?.name ?? ''
-  const activeCity = city || defaultCity
-  const cityObject = cities.find((c) => c.name === activeCity)
+  const cityObject = city ? cities.find((c) => c.name === city) : undefined
 
-  useEffect(() => {
-    if (!city && defaultCity) {
-      setCity(defaultCity)
-    }
-  }, [city, defaultCity])
-
-  const handleCityChange = (nextCity: string) => {
+  const handleCityChange = useCallback((nextCity: string) => {
     setCity(nextCity)
+    setRouteTargetId(null)
     setFilters((previous) => ({ ...previous, quartier: '' }))
-  }
+  }, [])
+
+  const handleFiltersChange = useCallback((next: PharmacyFilters) => {
+    setFilters(next)
+    setRouteTargetId(null)
+  }, [])
+
+  const handleDirections = useCallback((pharmacy: Pharmacy) => {
+    setRouteTargetId(pharmacy.id)
+    setView('carte')
+    requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLElement>('#pharmacies')
+        ?.scrollIntoView({ behavior: 'smooth' })
+    })
+  }, [])
+
+  const routeTarget =
+    pharmacies.find((p) => p.id === routeTargetId) ?? null
 
   return (
     <div className="min-h-screen">
@@ -45,7 +55,7 @@ export default function App() {
       <main>
         <Hero
           cities={cities}
-          city={city || defaultCity}
+          city={city}
           onCityChange={handleCityChange}
           onPositionChange={setPosition}
         />
@@ -54,14 +64,17 @@ export default function App() {
           city={cityObject}
           quartiers={quartiers}
           pharmacies={pharmacies}
+          quartierPoints={quartierPoints}
           loading={loading}
           error={error}
           position={position}
           view={view}
           filters={filters}
+          routeTarget={routeTarget}
           onViewChange={setView}
           onCityChange={handleCityChange}
-          onFiltersChange={setFilters}
+          onFiltersChange={handleFiltersChange}
+          onDirections={handleDirections}
         />
         <HowItWorks />
         <Reliability />

@@ -12,142 +12,203 @@ const now = Date.now()
 const minutesAgo = (m) => new Date(now - m * 60_000).toISOString()
 const hoursAgo = (h) => new Date(now - h * 3_600_000).toISOString()
 const daysAgo = (d) => new Date(now - d * 86_400_000).toISOString()
-const todayWeekday = new Date().getDay()
 
-const VERIFIED_SOURCE = 'Planning municipal de garde — vérifié par l\u2019administration'
+const ADMIN_SOURCE =
+  'Planning national des gardes — vérifié par l\u2019administration'
 const MUNICIPAL_SOURCE = 'Planning municipal de garde'
-const ADMIN_SOURCE = 'Saisie administration'
 
-// Chefs-lieux des 10 régions du Cameroun
 const cities = [
-  { name: 'Yaoundé', slug: 'yaounde', region: 'Centre', lat: 3.848, lng: 11.5021, pilot: 1 },
-  { name: 'Douala', slug: 'douala', region: 'Littoral', lat: 4.0511, lng: 9.7679, pilot: 1 },
-  { name: 'Bafoussam', slug: 'bafoussam', region: 'Ouest', lat: 5.4781, lng: 10.4173, pilot: 0 },
-  { name: 'Bamenda', slug: 'bamenda', region: 'Nord-Ouest', lat: 5.9597, lng: 10.146, pilot: 0 },
-  { name: 'Bertoua', slug: 'bertoua', region: 'Est', lat: 4.5773, lng: 13.6846, pilot: 0 },
-  { name: 'Buéa', slug: 'buea', region: 'Sud-Ouest', lat: 4.153, lng: 9.2893, pilot: 0 },
-  { name: 'Ebolowa', slug: 'ebolowa', region: 'Sud', lat: 2.9, lng: 11.15, pilot: 0 },
-  { name: 'Garoua', slug: 'garoua', region: 'Nord', lat: 9.301, lng: 13.392, pilot: 0 },
-  { name: 'Maroua', slug: 'maroua', region: 'Extrême-Nord', lat: 10.5912, lng: 14.3156, pilot: 0 },
-  { name: 'Ngaoundéré', slug: 'ngaoundere', region: 'Adamaoua', lat: 7.327, lng: 13.584, pilot: 0 },
+  { name: 'Yaoundé', slug: 'yaounde', region: 'Centre', lat: 3.8667, lng: 11.5167, pilot: true },
+  { name: 'Douala', slug: 'douala', region: 'Littoral', lat: 4.0505, lng: 9.6991, pilot: true },
+  { name: 'Bafoussam', slug: 'bafoussam', region: 'Ouest', lat: 5.4772, lng: 10.4203 },
+  { name: 'Bamenda', slug: 'bamenda', region: 'Nord-Ouest', lat: 5.9597, lng: 10.146 },
+  { name: 'Bertoua', slug: 'bertoua', region: 'Est', lat: 4.5773, lng: 13.6846 },
+  { name: 'Buéa', slug: 'buea', region: 'Sud-Ouest', lat: 4.1533, lng: 9.2843 },
+  { name: 'Ebolowa', slug: 'ebolowa', region: 'Sud', lat: 2.9001, lng: 11.1504 },
+  { name: 'Garoua', slug: 'garoua', region: 'Nord', lat: 9.3012, lng: 13.398 },
+  { name: 'Maroua', slug: 'maroua', region: 'Extrême-Nord', lat: 10.5915, lng: 14.3157 },
+  { name: 'Ngaoundéré', slug: 'ngaoundere', region: 'Adamaoua', lat: 7.3211, lng: 13.5846 },
 ]
 
-// Pharmacies détaillées des villes pilotes
-const pharmacies = [
+const pilots = [
   {
-    city: 'Yaoundé', name: 'Pharmacie du Centre', quartier: 'Centre-ville',
-    address: 'Avenue Mgr Vogt, en face du marché central', phone: '+237 690 00 00 01',
-    lat: 3.8667, lng: 11.5167, source: VERIFIED_SOURCE, lastUpdated: hoursAgo(2),
+    city: 'Yaoundé',
+    name: 'Pharmacie du Centre',
+    quartier: 'Centre-ville',
+    address: 'Avenue Mgr Vogt, en face du marché central',
+    phone: '+237 690 00 00 01',
+    lat: 3.8667,
+    lng: 11.5167,
+    source: MUNICIPAL_SOURCE,
+    lastUpdated: hoursAgo(2),
+    verified: true,
     confirmedMinutesAgo: 18,
   },
   {
-    city: 'Yaoundé', name: 'Pharmacie de la Paix', quartier: 'Bastos',
-    address: 'Rue Drouot, près du rond-point Bastos', phone: '+237 690 00 00 02',
-    lat: 3.8877, lng: 11.5184, source: MUNICIPAL_SOURCE, lastUpdated: hoursAgo(6),
+    city: 'Yaoundé',
+    name: 'Pharmacie de la Paix',
+    quartier: 'Bastos',
+    address: 'Rue Drouot, près du rond-point Bastos',
+    phone: '+237 690 00 00 02',
+    lat: 3.8877,
+    lng: 11.5184,
+    source: ADMIN_SOURCE,
+    lastUpdated: hoursAgo(6),
+    verified: true,
   },
   {
-    city: 'Yaoundé', name: 'Pharmacie Espérance', quartier: 'Biyem-Assi',
-    address: 'Carrefour Biyem-Assi, face à la station-service', phone: '+237 690 00 00 03',
-    lat: 3.83, lng: 11.455, source: MUNICIPAL_SOURCE, lastUpdated: daysAgo(4),
+    city: 'Yaoundé',
+    name: 'Pharmacie Espérance',
+    quartier: 'Biyem-Assi',
+    address: 'Carrefour Biyem-Assi, face à la station-service',
+    phone: '+237 690 00 00 03',
+    lat: 3.83,
+    lng: 11.455,
+    source: MUNICIPAL_SOURCE,
+    lastUpdated: daysAgo(4),
+    verified: true,
   },
   {
-    city: 'Douala', name: 'Pharmacie Saint-Michel', quartier: 'Akwa',
-    address: 'Boulevard de la Liberté, près du carrefour Akwa', phone: '+237 690 00 00 04',
-    lat: 4.0505, lng: 9.699, source: VERIFIED_SOURCE, lastUpdated: hoursAgo(1),
+    city: 'Douala',
+    name: 'Pharmacie Saint-Michel',
+    quartier: 'Akwa',
+    address: 'Boulevard de la Liberté, près du carrefour Akwa',
+    phone: '+237 690 00 00 04',
+    lat: 4.0505,
+    lng: 9.699,
+    source: ADMIN_SOURCE,
+    lastUpdated: hoursAgo(1),
+    verified: true,
     confirmedMinutesAgo: 5,
   },
   {
-    city: 'Douala', name: 'Pharmacie du Jourdain', quartier: 'Bonapriso',
-    address: 'Rue Pierre Sémengué, quartier hydraulique', phone: '+237 690 00 00 05',
-    lat: 4.035, lng: 9.692, source: MUNICIPAL_SOURCE, lastUpdated: hoursAgo(3),
-    reportedMinutesAgo: 40,
+    city: 'Douala',
+    name: 'Pharmacie du Jourdain',
+    quartier: 'Bonapriso',
+    address: 'Rue Pierre Sémengué, quartier hydraulique',
+    phone: '+237 690 00 00 05',
+    lat: 4.035,
+    lng: 9.692,
+    source: MUNICIPAL_SOURCE,
+    lastUpdated: hoursAgo(3),
+    verified: true,
   },
   {
-    city: 'Douala', name: 'Pharmacie La Renaissance', quartier: 'Bali',
-    address: 'Avenue de la République, face à la station Total', phone: '+237 690 00 00 06',
-    lat: 4.06, lng: 9.682, source: MUNICIPAL_SOURCE, lastUpdated: hoursAgo(20),
+    city: 'Douala',
+    name: 'Pharmacie La Renaissance',
+    quartier: 'Bali',
+    address: 'Avenue de la République, face à la station Total',
+    phone: '+237 690 00 00 06',
+    lat: 4.06,
+    lng: 9.682,
+    source: MUNICIPAL_SOURCE,
+    lastUpdated: hoursAgo(20),
+    verified: true,
   },
 ]
 
-// Données des autres chefs-lieux : 3 pharmacies par ville
-const outros = [
+// 8 autres chefs-lieux × 3 pharmacies générées (quartiers offset autour de la ville)
+const generated = [
   {
-    city: 'Bafoussam', quartiers: ['Centre-ville', 'Banengo', 'Tchimendem'],
-    noms: ['Pharmacie de la Gare', 'Pharmacie Cathédrale', 'Pharmacie du Stade'],
+    city: 'Bafoussam',
+    quartiers: [
+      { name: 'Banengo', dLat: -0.028, dLng: -0.022 },
+      { name: 'Centre-ville', dLat: 0.006, dLng: 0.011 },
+      { name: 'Tchimendem', dLat: 0.021, dLng: -0.013 },
+    ],
+    names: ['Pharmacie de la Gare', 'Pharmacie Cathédrale', 'Pharmacie du Stade'],
   },
   {
-    city: 'Bamenda', quartiers: ['Commercial Avenue', 'Nkwen', 'Mankon'],
-    noms: ['Pharmacie de la Montagne', 'Pharmacie Commercial Avenue', 'Pharmacie Nkwen'],
+    city: 'Bamenda',
+    quartiers: [
+      { name: 'Nkwen', dLat: -0.02, dLng: -0.015 },
+      { name: 'Old Town', dLat: 0.004, dLng: 0.012 },
+      { name: 'Mbatu', dLat: 0.018, dLng: -0.009 },
+    ],
+    names: ['Pharmacie du Lac', 'Pharmacie du Marché', 'Pharmacie Santa'],
   },
   {
-    city: 'Bertoua', quartiers: ['Centre-ville', 'Manga', 'Moamigui'],
-    noms: ["Pharmacie de l'Est", 'Pharmacie Manga', 'Pharmacie du Marché'],
+    city: 'Bertoua',
+    quartiers: [
+      { name: 'Mandjou', dLat: -0.025, dLng: -0.018 },
+      { name: 'Chantier', dLat: 0.007, dLng: 0.013 },
+      { name: 'Tibati', dLat: 0.019, dLng: -0.011 },
+    ],
+    names: ['Pharmacie de l\u2019Est', 'Pharmacie Centrale', 'Pharmacie du Carrefour'],
   },
   {
-    city: 'Buéa', quartiers: ['Molyko', 'Bokwango', 'Buea Town'],
-    noms: ['Pharmacie Molyko', 'Pharmacie du Col', 'Pharmacie Bokwango'],
+    city: 'Buéa',
+    quartiers: [
+      { name: 'Molyko', dLat: -0.024, dLng: -0.017 },
+      { name: 'Small Soppo', dLat: 0.006, dLng: 0.012 },
+      { name: 'Buea Town', dLat: 0.02, dLng: -0.01 },
+    ],
+    names: ['Pharmacie Molyko', 'Pharmacie de la Montagne', 'Pharmacie du Palmier'],
   },
   {
-    city: 'Ebolowa', quartiers: ['Centre-ville', 'Meyomessi', 'Bikop'],
-    noms: ['Pharmacie du Sud', 'Pharmacie Meyomessi', 'Pharmacie de la Poste'],
+    city: 'Ebolowa',
+    quartiers: [
+      { name: 'Ngoazip', dLat: -0.026, dLng: -0.019 },
+      { name: 'Melen', dLat: 0.005, dLng: 0.012 },
+      { name: 'Centre-ville', dLat: 0.022, dLng: -0.012 },
+    ],
+    names: ['Pharmacie du Sud', 'Pharmacie de la Forêt', 'Pharmacie de la Mairie'],
   },
   {
-    city: 'Garoua', quartiers: ['Centre-ville', 'Boki', 'Doualare'],
-    noms: ['Pharmacie du Grand Marché', 'Pharmacie de la Bénoué', 'Pharmacie Doualare'],
+    city: 'Garoua',
+    quartiers: [
+      { name: 'Boki', dLat: -0.027, dLng: -0.02 },
+      { name: 'Doualare', dLat: 0.006, dLng: 0.013 },
+      { name: 'Centre-ville', dLat: 0.02, dLng: -0.011 },
+    ],
+    names: ['Pharmacie de la Bénoué', 'Pharmacie Doualare', 'Pharmacie du Grand Marché'],
   },
   {
-    city: 'Maroua', quartiers: ['Yelwa', 'Pitoaré', 'Dougoui'],
-    noms: ['Pharmacie Yelwa', 'Pharmacie du Marché Central', 'Pharmacie Pitoaré'],
+    city: 'Maroua',
+    quartiers: [
+      { name: 'Dougoui', dLat: -0.025, dLng: -0.018 },
+      { name: 'Pitoaré', dLat: 0.006, dLng: 0.012 },
+      { name: 'Yelwa', dLat: 0.019, dLng: -0.01 },
+    ],
+    names: ['Pharmacie du Marché Central', 'Pharmacie Pitoaré', 'Pharmacie Yelwa'],
   },
   {
-    city: 'Ngaoundéré', quartiers: ['Baladji', 'Dang', 'Malang'],
-    noms: ['Pharmacie du Plateau', 'Pharmacie Malang', 'Pharmacie de la Gare'],
+    city: 'Ngaoundéré',
+    quartiers: [
+      { name: 'Baladji', dLat: -0.024, dLng: -0.017 },
+      { name: 'Dang', dLat: 0.006, dLng: 0.013 },
+      { name: 'Malang', dLat: 0.021, dLng: -0.012 },
+    ],
+    names: ['Pharmacie du Plateau', 'Pharmacie Malang', 'Pharmacie de la Gare'],
   },
 ]
 
-const streets = [
-  'Avenue principale',
-  'Rue du Marché',
-  "Boulevard de l'Indépendance",
-  'Rue de la Poste',
-]
-const offsets = [
-  [0.005, 0.012],
-  [-0.008, -0.016],
-  [0.012, -0.005],
-]
-
-let phoneSeed = 10
-for (const [cityIndex, block] of outros.entries()) {
-  const city = cities.find((c) => c.name === block.city)
-  for (let i = 0; i < 3; i++) {
-    const entry = {
-      city: block.city,
-      name: block.noms[i],
-      quartier: block.quartiers[i],
-      address: `${streets[(cityIndex + i) % streets.length]}, quartier ${block.quartiers[i]}`,
-      phone: `+237 692 00 00 ${String(phoneSeed).padStart(2, '0')}`,
-      lat: city.lat + offsets[i][0],
-      lng: city.lng + offsets[i][1],
-      source: cityIndex % 4 === 0 ? VERIFIED_SOURCE : MUNICIPAL_SOURCE,
-      lastUpdated: hoursAgo(1 + ((cityIndex + i) * 7) % 40),
+const generatedPharmacies = generated.flatMap((g, cityIndex) => {
+  const city = cities.find((c) => c.name === g.city)
+  return g.names.map((name, i) => {
+    const quartier = g.quartiers[i]
+    const confirmed = i === 0
+    const stale = i === 2 && cityIndex % 3 === 1
+    const reported = i === 2 && cityIndex % 3 === 0
+    return {
+      city: g.city,
+      name,
+      quartier: quartier.name,
+      address: `Quartier principal — secteur ${quartier.name}`,
+      phone: `+237 691 ${String(20 + cityIndex).padStart(2, '0')} ${i + 1}${i + 1}`,
+      lat: city.lat + quartier.dLat,
+      lng: city.lng + quartier.dLng,
+      source:
+        i === 1 ? ADMIN_SOURCE : MUNICIPAL_SOURCE,
+      lastUpdated: stale ? daysAgo(5) : hoursAgo(2 + cityIndex),
+      verified: true,
+      confirmedMinutesAgo: confirmed ? 10 + cityIndex * 6 + i * 3 : undefined,
+      reportedMinutesAgo: reported ? 30 + cityIndex * 10 : undefined,
     }
-    phoneSeed += 1
-    // Variété de statuts : confirmée / vérifiée / (signalée, ancienne ou vérifiée)
-    if (i === 0) {
-      entry.confirmedMinutesAgo = 10 + cityIndex * 6 + i * 3
-    } else if (i === 2) {
-      if (cityIndex % 3 === 0) {
-        entry.reportedMinutesAgo = 30 + cityIndex * 8
-      } else if (cityIndex % 3 === 1) {
-        entry.lastUpdated = daysAgo(3 + cityIndex % 5)
-      } else {
-        entry.lastUpdated = hoursAgo(20 + cityIndex)
-      }
-    }
-    pharmacies.push(entry)
-  }
-}
+  })
+})
+
+const pharmacies = [...pilots, ...generatedPharmacies]
 
 const SQL = await initSqlJs()
 const db = new SQL.Database()
@@ -216,14 +277,17 @@ db.run(`
   CREATE INDEX idx_reports_pharmacy_status ON reports(pharmacy_id, status);
 `)
 
+const todayWeekday = new Date().getDay()
+
 const cityIds = new Map()
-const insertCity = db.prepare(
-  'INSERT INTO cities (name, slug, region, latitude, longitude, is_pilot) VALUES (?, ?, ?, ?, ?, ?)',
-)
-for (const city of cities) {
-  insertCity.run([city.name, city.slug, city.region, city.lat, city.lng, city.pilot])
+const insertCity = db.prepare(`
+  INSERT INTO cities (name, slug, region, latitude, longitude, is_pilot)
+  VALUES (?, ?, ?, ?, ?, ?)
+`)
+for (const c of cities) {
+  insertCity.run([c.name, c.slug, c.region, c.lat, c.lng, c.pilot ? 1 : 0])
   const row = db.exec('SELECT last_insert_rowid() AS id')[0].values[0][0]
-  cityIds.set(city.name, row)
+  cityIds.set(c.name, row)
 }
 insertCity.free()
 
@@ -232,7 +296,7 @@ const insertPharmacy = db.prepare(`
   INSERT INTO pharmacies
     (name, city_id, quartier, address, phone, latitude, longitude,
      source, verified, last_updated, created_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `)
 for (const p of pharmacies) {
   insertPharmacy.run([
@@ -244,8 +308,9 @@ for (const p of pharmacies) {
     p.lat,
     p.lng,
     p.source,
+    p.verified ? 1 : 0,
     p.lastUpdated,
-    daysAgo(60),
+    hoursAgo(24 * 60),
   ])
   const row = db.exec('SELECT last_insert_rowid() AS id')[0].values[0][0]
   pharmacyIds.set(`${p.city}::${p.name}`, row)
@@ -279,8 +344,10 @@ const insertConfirmation = db.prepare(`
     (pharmacy_id, duty_schedule_id, actor, timestamp, result)
   VALUES (?, ?, ?, ?, 'ok')
 `)
+let confirmationsCount = 0
 for (const p of pharmacies) {
   if (p.confirmedMinutesAgo === undefined) continue
+  confirmationsCount += 1
   insertConfirmation.run([
     pharmacyIds.get(`${p.city}::${p.name}`),
     scheduleByPharmacy.get(`${p.city}::${p.name}:${todayWeekday}`),
@@ -295,11 +362,13 @@ const insertReport = db.prepare(`
     (pharmacy_id, author, type, description, status, created_at)
   VALUES (?, 'Anonyme', 'fermeture', ?, 'en_verification', ?)
 `)
+let reportsCount = 0
 for (const p of pharmacies) {
   if (p.reportedMinutesAgo === undefined) continue
+  reportsCount += 1
   insertReport.run([
     pharmacyIds.get(`${p.city}::${p.name}`),
-    `Pharmacie fermée malgré la garde affichée (signalement).`,
+    `Pharmacie fermée malgré la garde affichée (signalement ${reportsCount}).`,
     minutesAgo(p.reportedMinutesAgo),
   ])
 }
@@ -308,7 +377,7 @@ insertReport.free()
 mkdirSync(dbDir, { recursive: true })
 writeFileSync(dbPath, Buffer.from(db.export()))
 console.log(
-  `pharmagarde.db générée : ${dbPath} (${cities.length} villes, ${pharmacies.length} pharmacies)`,
+  `pharmagarde.db générée : ${dbPath} (${cities.length} villes, ${pharmacies.length} pharmacies, ${confirmationsCount} confirmations, ${reportsCount} signalements)`,
 )
 
 const wasmSrc = join(projectDir, 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm')

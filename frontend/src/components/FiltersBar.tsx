@@ -66,6 +66,7 @@ export default function FiltersBar({
             value={city}
             onChange={(event) => onCityChange(event.target.value)}
           >
+            <option value="">Toutes les villes — Cameroun</option>
             {cities.map((c) => (
               <option key={c.name} value={c.name}>
                 {c.name}, {c.region}
@@ -74,26 +75,28 @@ export default function FiltersBar({
           </select>
         </div>
 
-        <div className="min-w-44 flex-1">
-          <label htmlFor="filtre-quartier" className="mb-1 block text-xs font-semibold text-slate-500">
-            Quartier
-          </label>
-          <select
-            id="filtre-quartier"
-            className={selectClass}
-            value={filters.quartier}
-            onChange={(event) =>
-              onChange({ ...filters, quartier: event.target.value })
-            }
-          >
-            <option value="">Tous les quartiers</option>
-            {quartiers.map((q) => (
-              <option key={q} value={q}>
-                {q}
-              </option>
-            ))}
-          </select>
-        </div>
+        {city !== '' && (
+          <div className="min-w-44 flex-1">
+            <label htmlFor="filtre-quartier" className="mb-1 block text-xs font-semibold text-slate-500">
+              Quartier
+            </label>
+            <select
+              id="filtre-quartier"
+              className={selectClass}
+              value={filters.quartier}
+              onChange={(event) =>
+                onChange({ ...filters, quartier: event.target.value })
+              }
+            >
+              <option value="">Tous les quartiers</option>
+              {quartiers.map((q) => (
+                <option key={q} value={q}>
+                  {q}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="mt-4">

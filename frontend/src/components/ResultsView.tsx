@@ -4,6 +4,7 @@ import {
   type Pharmacy,
   type PharmacyFilters,
   type Position,
+  type QuartierPoint,
 } from '../data/pharmacies'
 import FiltersBar from './FiltersBar'
 import PharmacyCard from './PharmacyCard'
@@ -16,14 +17,17 @@ interface ResultsViewProps {
   city: City | undefined
   quartiers: string[]
   pharmacies: Pharmacy[]
+  quartierPoints: QuartierPoint[]
   loading: boolean
   error: string | null
   position: Position | null
   view: ViewMode
   filters: PharmacyFilters
+  routeTarget: Pharmacy | null
   onViewChange: (view: ViewMode) => void
-  onCityChange: (city: string) => void
+  onCityChange: (cityName: string) => void
   onFiltersChange: (filters: PharmacyFilters) => void
+  onDirections: (pharmacy: Pharmacy) => void
 }
 
 function formatNow() {
@@ -47,15 +51,22 @@ export default function ResultsView({
   city,
   quartiers,
   pharmacies,
+  quartierPoints,
   loading,
   error,
   position,
   view,
   filters,
+  routeTarget,
   onViewChange,
   onCityChange,
   onFiltersChange,
+  onDirections,
 }: ResultsViewProps) {
+  const sections = city ? [city] : cities
+  const hasActiveFilters =
+    filters.quartier !== '' || filters.statuses.length > 0 || filters.confirmedOnly
+
   return (
     <section id="pharmacies" className="scroll-mt-20 py-16 sm:py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -67,10 +78,10 @@ export default function ResultsView({
             <p className="mt-2 text-slate-600">
               {city ? (
                 <>
-                  {city.name} · {city.region}, gardes valides pour la date et l'heure courantes.
+                  {city.name} · {city.region} — gardes valides pour la date et l'heure courantes.
                 </>
               ) : (
-                "Gardes valides pour la date et l'heure courantes."
+                'Tout le Cameroun — chefs-lieux de région, gardes valides pour la date et l\'heure courantes.'
               )}
             </p>
           </div>
@@ -99,7 +110,8 @@ export default function ResultsView({
         </div>
 
         <p className="mt-4 text-xs text-slate-400">
-       
+          Données issues de la base locale <code>public/db/pharmagarde.db</code> (SQLite) — tri par
+          proximité puis fiabilité.
         </p>
 
         {!loading && error === null && (
@@ -131,42 +143,99 @@ export default function ResultsView({
         )}
 
         {!loading && error === null && pharmacies.length === 0 && (
-          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-600">
+          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-600">
             <p className="font-medium">
-              Aucune pharmacie ne correspond aux critères pour {city?.name ?? 'cette ville'}.
+              Aucune pharmacie ne correspond aux critères pour {city?.name ?? 'l\'ensemble des villes'}.
             </p>
-            <button
-              type="button"
-              onClick={() => onFiltersChange(EMPTY_FILTERS)}
-              className="mt-3 text-sm font-semibold text-emerald-700 hover:text-emerald-900"
-            >
-              Réinitialiser les filtres
-            </button>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={() => onFiltersChange(EMPTY_FILTERS)}
+                className="mt-3 text-sm font-semibold text-emerald-700 hover:text-emerald-900"
+              >
+                Réinitialiser les filtres
+              </button>
+            )}
           </div>
         )}
 
-        {!loading && error === null && pharmacies.length > 0 && (
+        {!loading && error === null && (
           <div className="mt-6">
             {view === 'liste' ? (
               <>
                 <p className="mb-4 text-sm font-medium text-slate-500">
-                  {pharmacies.length} pharmacie{pharmacies.length > 1 ? 's' : ''} à garde active :
-                  {position !== null ? ' triées par distance' : ' classées par fiabilité'}
+                  {pharmacies.length} pharmacie{pharmacies.length > 1 ? 's' : ''} à garde active
+                  {position !== null ? ' — triées par distance' : ' — classées par fiabilité'}
                 </p>
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {pharmacies.map((pharmacy) => (
-                    <PharmacyCard key={pharmacy.id} pharmacy={pharmacy} />
-                  ))}
+                <div className="space-y-10">
+                  {sections.map((c) => {
+                    const group = pharmacies.filter((p) => p.city === c.name)
+                    const chips = quartierPoints.filter((q) => q.city === c.name)
+                    return (
+                      <article
+                        key={c.name}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6"
+                      >
+                        <header className="flex flex-wrap items-center gap-3">
+                          <h3 className="flex items-center gap-2 text-xl font-bold text-slate-900">
+                            <span className="size-2.5 rounded-full bg-emerald-600" aria-hidden="true" />
+                            {c.name}
+                          </h3>
+                          <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-emerald-800">
+                            {c.region}
+                          </span>
+                          <span className="text-sm font-medium text-slate-500">
+                            {group.length} pharmacie{group.length > 1 ? 's' : ''}
+                          </span>
+                        </header>
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {chips.length > 0 ? (
+                            chips.map((q) => (
+                              <span
+                                key={`${q.city}-${q.quartier}`}
+                                className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 ring-1 ring-amber-200"
+                                title={`Quartier de ${q.city}`}
+                              >
+                                {q.quartier}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-sm italic text-slate-400">
+                              Aucun quartier référencé.
+                            </span>
+                          )}
+                        </div>
+                        {group.length > 0 ? (
+                          <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            {group.map((pharmacy) => (
+                              <PharmacyCard
+                                key={pharmacy.id}
+                                pharmacy={pharmacy}
+                                onDirections={onDirections}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-5 rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+                            Aucune pharmacie de ce quartier ne correspond aux critères sélectionnés.
+                          </p>
+                        )}
+                      </article>
+                    )
+                  })}
                 </div>
               </>
             ) : (
-              city && (
-                <PharmacyMap
-                  pharmacies={pharmacies}
-                  position={position}
-                  city={city}
-                />
-              )
+              <PharmacyMap
+                pharmacies={pharmacies}
+                allCities={cities}
+                quartierPoints={quartierPoints}
+                position={position}
+                routeTarget={routeTarget}
+                city={city}
+                onDirections={onDirections}
+                onSelectCity={onCityChange}
+              />
             )}
           </div>
         )}

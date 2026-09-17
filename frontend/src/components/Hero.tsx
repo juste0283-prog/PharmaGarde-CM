@@ -105,11 +105,14 @@ export default function Hero({ cities, city, onCityChange, onPositionChange }: H
                       Chargement…
                     </option>
                   ) : (
-                    cities.map((c) => (
-                      <option key={c.name} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))
+                    <>
+                      <option value="">Toutes les villes — Cameroun</option>
+                      {cities.map((c) => (
+                        <option key={c.name} value={c.name}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </>
                   )}
                 </select>
               </div>

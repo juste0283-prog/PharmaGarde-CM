@@ -66,11 +66,39 @@ body {
   box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.4);
 }
 
+.pg-quartier {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--color-amber-500);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.45);
+}
+
+.pg-city-region {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-emerald-700);
+  background: var(--color-emerald-50);
+  border: 1px solid var(--color-emerald-200);
+  border-radius: 9999px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
 .pg-popup {
   max-width: 240px;
   font-size: 12px;
   line-height: 1.4;
   color: var(--color-slate-700);
+}
+
+.pg-popup-quartiers {
+  font-style: italic;
+  color: var(--color-slate-500);
+  margin-bottom: 6px;
 }
 
 .pg-popup-head {
@@ -90,6 +118,16 @@ body {
   margin: 2px 0;
 }
 
+.pg-route-info {
+  margin: 6px 0 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--color-emerald-50);
+  border: 1px solid var(--color-emerald-200);
+  color: var(--color-emerald-900);
+  font-weight: 600;
+}
+
 .pg-actions {
   display: flex;
   gap: 8px;
@@ -98,7 +136,8 @@ body {
   border-top: 1px solid var(--color-slate-200);
 }
 
-.pg-actions a {
+.pg-actions a,
+.pg-actions .pg-btn-nav {
   flex: 1;
   text-align: center;
   padding: 5px;
@@ -112,7 +151,43 @@ body {
   color: #fff;
 }
 
-.pg-actions a:last-child {
+.pg-actions a:last-child,
+.pg-actions .pg-btn-nav {
   border: 1px solid var(--color-slate-300);
+  background: #fff;
   color: var(--color-slate-700);
+  cursor: pointer;
+}
+
+.pg-btn-nav {
+  display: block;
+  margin-top: 8px;
+  width: 100%;
+  text-align: center;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--color-emerald-600);
+  background: var(--color-emerald-600);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pg-btn-nav:hover {
+  background: var(--color-emerald-700);
+}
+
+.pg-external {
+  display: block;
+  margin-top: 6px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-slate-400);
+  text-decoration: none;
+}
+
+.pg-external:hover {
+  color: var(--color-emerald-700);
 }
