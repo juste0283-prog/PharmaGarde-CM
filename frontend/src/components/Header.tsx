@@ -9,21 +9,8 @@ const NAV_LINKS = [
 function Logo() {
   return (
     <a href="#accueil" className="flex items-center gap-2.5">
-      <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-          className="size-5"
-          aria-hidden="true"
-        >
-          <path d="M12 9v6" />
-          <path d="M9 12h6" />
-          <path d="M12 3a1 1 0 0 1 1 1v2h2a1 1 0 0 1 0 2h-6a1 1 0 0 1 0-2h2V4a1 1 0 0 1 1-1Z" />
-        </svg>
+      <span className="grid size-9 place-items-center overflow-hidden rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-200">
+        <img src="/logo.png" alt="Logo PharmaGarde CM" className="size-6 object-contain" />
       </span>
       <span className="text-lg font-bold tracking-tight">
         PharmaGarde&nbsp;<span className="text-emerald-600">CM</span>

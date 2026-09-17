@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+﻿import type { ReactNode } from 'react'
 
 export type Accent = 'emerald' | 'indigo' | 'violet'
 
@@ -100,30 +100,12 @@ function NavIcon({ name }: { name: string }) {
   )
 }
 
-export function BrandMark({ accent, mark = 'plus' }: { accent: Accent; mark?: 'plus' | 'star' }) {
-  const classes = ACCENTS[accent]
+export function BrandMark(_props: { accent: Accent }) {
   return (
     <span
-      className={`grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br text-white shadow-sm ${classes.grad}`}
+      className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-200"
     >
-      {mark === 'star' ? (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-5" aria-hidden="true">
-          <path d="M12 2.5l2.6 6.1 6.4.5-4.9 4.2 1.5 6.2L12 16l-5.6 3.5 1.5-6.2L3 9.1l6.4-.5L12 2.5Z" />
-        </svg>
-      ) : (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-          className="size-5"
-          aria-hidden="true"
-        >
-          <path d="M12 9v6M9 12h6" />
-        </svg>
-      )}
+      <img src="/logo.png" alt="Logo PharmaGarde CM" className="size-6 object-contain" />
     </span>
   )
 }
@@ -229,7 +211,7 @@ export default function BackOfficeShell({
       <div className="mx-auto flex min-h-screen max-w-[1500px]">
         <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-200 bg-white lg:flex">
           <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-5">
-            <BrandMark accent={accent} mark={accent === 'emerald' ? 'plus' : 'star'} />
+            <BrandMark accent={accent} />
             <div>
               <p className="text-sm font-black tracking-tight text-slate-900">PharmaGarde CM</p>
               <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Back-office</p>
@@ -295,7 +277,7 @@ export default function BackOfficeShell({
           <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
             <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6">
               <div className="flex min-w-0 items-center gap-2.5 lg:hidden">
-                <BrandMark accent={accent} mark={accent === 'emerald' ? 'plus' : 'star'} />
+                <BrandMark accent={accent} />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-slate-900">{brand}</p>
                   <p className="truncate text-xs text-slate-500">{scopeLabel}</p>
