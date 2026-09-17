@@ -19,6 +19,7 @@ export default function PharmacyCard({
   pharmacy: Pharmacy
   onDirections: (pharmacy: Pharmacy) => void
 }) {
+  const distance = pharmacy.distanceKm ?? pharmacy.cityDistanceKm
   return (
     <article className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
@@ -46,11 +47,15 @@ export default function PharmacyCard({
             {pharmacy.lastUpdated}
           </dd>
         </div>
-        {pharmacy.distanceKm !== null && (
+        {distance !== null && (
           <div className="flex items-center gap-2">
             <RulerIcon />
-            <dt className="font-semibold text-slate-700">Distance :</dt>
-            <dd className="text-slate-600">à {pharmacy.distanceKm.toLocaleString('fr-FR')} km</dd>
+            <dt className="font-semibold text-slate-700">
+              {pharmacy.distanceKm !== null ? 'Distance de vous :' : 'Distance (centre-ville) :'}
+            </dt>
+            <dd className="text-slate-600">
+              à {distance.toLocaleString('fr-FR')} km
+            </dd>
           </div>
         )}
       </dl>

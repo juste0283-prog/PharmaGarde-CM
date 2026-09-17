@@ -75,7 +75,7 @@ export function getPharmacies(
     `
     SELECT p.id, p.name, p.quartier, p.address, p.phone,
            p.latitude, p.longitude, p.source, p.verified, p.last_updated,
-           c.name AS city, c.region,
+           c.name AS city, c.region, c.latitude AS city_lat, c.longitude AS city_lng,
            ds.start AS garde_start, ds.end AS garde_end
     FROM pharmacies p
     JOIN cities c ON c.id = p.city_id
@@ -149,11 +149,18 @@ export function getPharmacies(
                 lng: Number(row.longitude),
               }) * 10,
             ) / 10,
+      cityDistanceKm:
+        Math.round(
+          haversineKm(
+            { lat: Number(row.city_lat), lng: Number(row.city_lng) },
+            { lat: Number(row.latitude), lng: Number(row.longitude) },
+          ) * 10,
+        ) / 10,
       status,
       lastUpdated: lastUpdatedPhrase,
       currentGarde:
         row.garde_start && row.garde_end
-          ? `Garde de nuit — ${formatHour(String(row.garde_start))} à ${formatHour(String(row.garde_end))}`
+          ? `Garde de nuit : de ${formatHour(String(row.garde_start))}h à ${formatHour(String(row.garde_end))}h`
           : 'Garde en cours — planning à confirmer',
     }
   })

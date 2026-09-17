@@ -35,6 +35,7 @@ export interface Pharmacy {
   longitude: number
   source: string
   distanceKm: number | null
+  cityDistanceKm: number | null
   status: ReliabilityStatus
   lastUpdated: string
   currentGarde: string
