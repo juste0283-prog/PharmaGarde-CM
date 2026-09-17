@@ -203,11 +203,25 @@ export interface AdminPharmacy {
   quartier: string
   address: string
   phone: string
+  latitude: number
+  longitude: number
   source: string
   verified: boolean
   lastUpdated: string
   accountStatus: AccountStatus
   accountId: number | null
+}
+
+export interface NewPharmacyInput {
+  name: string
+  city: string
+  quartier: string
+  address: string
+  phone: string
+  latitude: number
+  longitude: number
+  verified: boolean
+  source?: string
 }
 
 export interface AdminReport {

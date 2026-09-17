@@ -41,11 +41,15 @@ itinéraire et signalement des incohérences.
   - **Administrateur** (ville/zone assignée) : valider les pharmacies et comptes, gérer les gardes,
     modérer les signalements, statistiques locales ;
   - **Super administrateur** : plateforme entière — toutes les villes, rôles et comptes,
-    paramètres & sécurité, journal d'audit, arbitrage des signalements.
+    paramètres & sécurité, journal d'audit, arbitrage des signalements. Il **crée et gère les
+    pharmacies** (nom, ville, **quartier**, adresse, téléphone, **coordonnées GPS**) : un compte
+    professionnel et un planning de 7 jours sont créés automatiquement, puis **chaque pharmacie
+    apparaît dynamiquement sur l'accueil** (liste, filtres par quartier, carte).
 
   Interface professionnelle (sidebar de navigation, tableaux de bord, badges de statut), connexion
   en mode démonstration sans mot de passe, session persistante entre les visites et
-  journalisation de toutes les actions dans le journal d'audit.
+  journalisation de toutes les actions dans le journal d'audit. Le **quartier** est systématiquement
+  mis en avant (badges dans le back-office, datalist de choix, filtres dynamiques de l'accueil).
 
 ---
 

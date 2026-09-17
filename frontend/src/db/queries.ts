@@ -10,6 +10,7 @@ import type {
   City,
   ConfirmationRecord,
   GardeSchedule,
+  NewPharmacyInput,
   Pharmacy,
   PharmacyFilters,
   PharmacyProfile,
@@ -641,7 +642,8 @@ export function getAdminPharmacies(
   return execAll(
     db,
     `SELECT p.id, p.name, p.quartier, p.address, p.phone, p.source,
-            p.verified, p.last_updated, c.name AS city, c.region,
+            p.latitude, p.longitude, p.verified, p.last_updated,
+            c.name AS city, c.region,
             COALESCE(u.status, 'actif') AS account_status, u.id AS account_id
      FROM pharmacies p
      JOIN cities c ON c.id = p.city_id
@@ -656,12 +658,144 @@ export function getAdminPharmacies(
     quartier: String(row.quartier),
     address: String(row.address),
     phone: String(row.phone),
+    latitude: Number(row.latitude),
+    longitude: Number(row.longitude),
     source: String(row.source),
     verified: Number(row.verified) === 1,
     lastUpdated: String(row.last_updated),
     accountStatus: String(row.account_status) as AccountStatus,
     accountId: row.account_id === null ? null : Number(row.account_id),
   }))
+}
+
+export function createPharmacy(
+  db: Database,
+  input: NewPharmacyInput,
+  actor: string,
+): { ok: boolean; pharmacyId?: number; error?: string } {
+  const name = input.name.trim()
+  const quartier = input.quartier.trim()
+  const phone = input.phone.trim()
+  if (!name || !quartier || !phone) {
+    return { ok: false, error: 'Nom, quartier et téléphone sont obligatoires.' }
+  }
+  const cityRow = execFirst(db, `SELECT id FROM cities WHERE name = ?`, [input.city.trim()])
+  if (!cityRow) return { ok: false, error: `Ville inconnue : ${input.city}` }
+  const lat = Number(input.latitude)
+  const lng = Number(input.longitude)
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    return { ok: false, error: 'Coordonnées géographiques invalides (lat entre -90 et 90, lng entre -180 et 180).' }
+  }
+
+  const now = new Date().toISOString()
+  const source = input.source?.trim() || `Inscrite par ${actor}`
+  db.run(
+    `INSERT INTO pharmacies
+       (name, city_id, quartier, address, phone, latitude, longitude,
+        source, verified, last_updated, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      name,
+      Number(cityRow.id),
+      quartier,
+      input.address.trim(),
+      phone,
+      lat,
+      lng,
+      source,
+      input.verified ? 1 : 0,
+      now,
+      now,
+    ],
+  )
+  const idRow = execFirst(db, `SELECT last_insert_rowid() AS id`)
+  const pharmacyId = Number(idRow?.id ?? 0)
+
+  const insertSchedule = db.prepare(
+    `INSERT INTO duty_schedules (pharmacy_id, weekday, start, end, status, source, created_at)
+     VALUES (?, ?, '18:00', '08:00', 'draft', ?, ?)`,
+  )
+  for (let weekday = 0; weekday <= 6; weekday += 1) {
+    insertSchedule.run([pharmacyId, weekday, `Planning initialisé par ${actor}`, now])
+  }
+
+  db.run(
+    `INSERT INTO users (name, email, role, city_id, pharmacy_id, status, created_at)
+     VALUES (?, ?, 'pharmacie', ?, ?, ?, ?)`,
+    [
+      `${name} (compte)`,
+      `pharma.${pharmacyId}@pharmagarde.cm`,
+      Number(cityRow.id),
+      pharmacyId,
+      input.verified ? 'actif' : 'en_attente',
+      now,
+    ],
+  )
+  saveDb(db)
+  logAudit(
+    db,
+    actor,
+    'compte_creation',
+    `pharmacy:${pharmacyId}`,
+    `créée par ${actor} — ${quartier}, ${input.city}`,
+  )
+  if (input.verified) {
+    logAudit(db, actor, 'validation', `pharmacy:${pharmacyId}`, 'créée vérifiée')
+  }
+  return { ok: true, pharmacyId }
+}
+
+export function updatePharmacyFull(
+  db: Database,
+  pharmacyId: number,
+  patch: {
+    name?: string
+    quartier?: string
+    address?: string
+    phone?: string
+    latitude?: number
+    longitude?: number
+  },
+  actor: string,
+): void {
+  const fields: string[] = []
+  const values: Array<string | number> = []
+  if (patch.name !== undefined) {
+    const name = patch.name.trim()
+    if (name) {
+      fields.push('name = ?')
+      values.push(name)
+      db.run(`UPDATE users SET name = ? WHERE role = 'pharmacie' AND pharmacy_id = ?`, [
+        `${name} (compte)`,
+        pharmacyId,
+      ])
+    }
+  }
+  if (patch.quartier !== undefined) {
+    fields.push('quartier = ?')
+    values.push(patch.quartier.trim())
+  }
+  if (patch.address !== undefined) {
+    fields.push('address = ?')
+    values.push(patch.address.trim())
+  }
+  if (patch.phone !== undefined) {
+    fields.push('phone = ?')
+    values.push(patch.phone.trim())
+  }
+  if (patch.latitude !== undefined && Number.isFinite(patch.latitude)) {
+    fields.push('latitude = ?')
+    values.push(patch.latitude)
+  }
+  if (patch.longitude !== undefined && Number.isFinite(patch.longitude)) {
+    fields.push('longitude = ?')
+    values.push(patch.longitude)
+  }
+  if (fields.length === 0) return
+  values.push(new Date().toISOString(), pharmacyId)
+  db.run(`UPDATE pharmacies SET ${fields.join(', ')}, last_updated = ? WHERE id = ?`, values)
+  saveDb(db)
+  logAudit(db, actor, 'profil_maj', `pharmacy:${pharmacyId}`, fields.join(', '))
 }
 
 export function setPharmacyVerified(

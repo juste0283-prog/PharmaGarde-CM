@@ -6,6 +6,7 @@ import {
   getConfirmations,
   getDutySchedules,
   getPharmacyProfile,
+  getQuartiers,
   getReports,
   getUserByPharmacy,
   respondToReport,
@@ -146,6 +147,9 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
     const refEnd = s ? s.end : '08:00'
     return day.enabled !== refEnabled || day.start !== refStart || day.end !== refEnd
   })
+
+  const cityQuartiers =
+    db !== null && profile !== null ? getQuartiers(db, profile.pharmacy.city) : []
 
   function patchDay(weekday: number, patch: Partial<DayDraft>) {
     setWeek((prev) => prev.map((day) => (day.weekday === weekday ? { ...day, ...patch } : day)))
@@ -547,10 +551,16 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
                     <label htmlFor="pro-quartier" className="mb-1 block text-xs font-semibold text-slate-600">Quartier</label>
                     <input
                       id="pro-quartier"
+                      list="pharmacy-city-quartiers"
                       value={quartierDraft}
                       onChange={(event) => setQuartierDraft(event.target.value)}
                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                     />
+                    <datalist id="pharmacy-city-quartiers">
+                      {cityQuartiers.map((q) => (
+                        <option key={q} value={q} />
+                      ))}
+                    </datalist>
                   </div>
                   <div>
                     <label htmlFor="pro-address" className="mb-1 block text-xs font-semibold text-slate-600">Adresse</label>

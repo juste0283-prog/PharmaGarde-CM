@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Database } from 'sql.js'
 import {
+  createPharmacy,
   createUser,
   getAdminPharmacies,
   getAdminReports,
@@ -8,11 +9,13 @@ import {
   getAdminStats,
   getAuditLogs,
   getCities,
+  getQuartiers,
   getUsers,
   setAccountStatus,
   setPharmacyVerified,
   setReportStatusAdmin,
   setScheduleStatus,
+  updatePharmacyFull,
   updateUserRole,
 } from '../db/queries'
 import {
@@ -30,6 +33,7 @@ import {
   type AuditEntry,
   type BackOfficeRole,
   type City,
+  type NewPharmacyInput,
   type UserAccount,
 } from '../data/pharmacies'
 import BackOfficeShell, {
@@ -113,6 +117,41 @@ export default function AdminSpace({
   const [reportFilter, setReportFilter] = useState('')
   const [newAccount, setNewAccount] = useState({ name: '', email: '', role: 'admin' as BackOfficeRole, city: '' })
 
+  const [showCreate, setShowCreate] = useState(false)
+  const [newPharmacy, setNewPharmacy] = useState<NewPharmacyInput>({
+    name: '',
+    city: city ?? '',
+    quartier: '',
+    address: '',
+    phone: '',
+    latitude: 0,
+    longitude: 0,
+    verified: isSuper,
+  })
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editDraft, setEditDraft] = useState<{
+    name: string
+    quartier: string
+    address: string
+    phone: string
+    latitude: string
+    longitude: string
+  }>({ name: '', quartier: '', address: '', phone: '', latitude: '', longitude: '' })
+
+  const fieldClass =
+    'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100'
+
+  const existingQuartiers = useMemo(
+    () => getQuartiers(db, showCreate ? newPharmacy.city : (city ?? '')),
+    [db, showCreate, newPharmacy.city, city],
+  )
+
+  function pickCityCoordinates(nextCity: string) {
+    const c = data.cities.find((item) => item.name === nextCity)
+    if (!c) return
+    setNewPharmacy((prev) => ({ ...prev, city: nextCity, latitude: c.lat, longitude: c.lng }))
+  }
+
   const load = useCallback(() => {
     const nextScope = isSuper ? scope : city
     try {
@@ -163,6 +202,70 @@ export default function AdminSpace({
       )
       setNewAccount({ name: '', email: '', role: 'admin', city: '' })
     })
+  }
+
+  function handleCreatePharmacy() {
+    if (!newPharmacy.name.trim() || !newPharmacy.quartier.trim()) {
+      setError('Nom et quartier sont obligatoires pour créer une pharmacie.')
+      return
+    }
+    const result = createPharmacy(db, newPharmacy, label)
+    if (!result.ok) {
+      setError(result.error ?? 'Création impossible.')
+      return
+    }
+    setNewPharmacy({
+      name: '',
+      city: city ?? '',
+      quartier: '',
+      address: '',
+      phone: '',
+      latitude: 0,
+      longitude: 0,
+      verified: isSuper,
+    })
+    setShowCreate(false)
+    setNotice(
+      `Pharmacie créée (${newPharmacy.quartier}, ${newPharmacy.city}) avec planning initialisé et compte professionnel.`,
+    )
+    load()
+  }
+
+  function startEdit(pharmacy: AdminPharmacy) {
+    setEditingId(pharmacy.id)
+    setEditDraft({
+      name: pharmacy.name,
+      quartier: pharmacy.quartier,
+      address: pharmacy.address,
+      phone: pharmacy.phone,
+      latitude: String(pharmacy.latitude),
+      longitude: String(pharmacy.longitude),
+    })
+  }
+
+  function handleSaveEdit(pharmacyId: number) {
+    const lat = Number(editDraft.latitude)
+    const lng = Number(editDraft.longitude)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setError('Coordonnées invalides pour la mise à jour de la fiche.')
+      return
+    }
+    updatePharmacyFull(
+      db,
+      pharmacyId,
+      {
+        name: editDraft.name,
+        quartier: editDraft.quartier,
+        address: editDraft.address,
+        phone: editDraft.phone,
+        latitude: lat,
+        longitude: lng,
+      },
+      label,
+    )
+    setEditingId(null)
+    setNotice('Fiche de pharmacie mise à jour (coordonnées GPS, quartier, contact).')
+    load()
   }
 
   const accent = isSuper ? 'violet' : 'indigo'
@@ -297,10 +400,150 @@ export default function AdminSpace({
         <div className="space-y-5">
           <SectionTitle
             title="Validation des pharmacies & comptes"
-            subtitle={`Compte activé uniquement après validation administrative (${data.pharmacies.length} pharmacies).`}
-            chip={scopeChip}
+            subtitle={`${data.pharmacies.length} pharmacies — création et mise à jour par la supervision, quartier et coordonnées GPS inclus.`}
+            chip={
+              <span className="flex flex-wrap items-center gap-2">
+                {scopeChip}
+                <button
+                  type="button"
+                  onClick={() => setShowCreate((value) => !value)}
+                  className="rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-700"
+                >
+                  {showCreate ? 'Annuler' : '+ Créer une pharmacie'}
+                </button>
+              </span>
+            }
           />
-          {data.pharmacies.length === 0 && (
+          {showCreate && (
+            <div className="rounded-2xl border border-violet-200 bg-white p-5 shadow-sm">
+              <p className="text-sm font-bold text-slate-900">Nouvelle pharmacie</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Le quartier pilote le filtre de l’accueil ; les coordonnées GPS placent la pharmacie sur la carte.
+                Un compte professionnel et un planning (7 jours) sont créés automatiquement.
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <label className="block">
+                  <span className="text-xs font-semibold text-slate-600">Nom *</span>
+                  <input
+                    id="np-name"
+                    value={newPharmacy.name}
+                    onChange={(event) => setNewPharmacy((prev) => ({ ...prev, name: event.target.value }))}
+                    placeholder="Pharmacie du Marché"
+                    className={fieldClass}
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold text-slate-600">Ville</span>
+                  <select
+                    id="np-city"
+                    value={newPharmacy.city}
+                    onChange={(event) => pickCityCoordinates(event.target.value)}
+                    disabled={!isSuper}
+                    className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-slate-100`}
+                  >
+                    {data.cities.map((c) => (
+                      <option key={c.name} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold text-slate-600">Quartier *</span>
+                  <input
+                    id="np-quartier"
+                    value={newPharmacy.quartier}
+                    onChange={(event) => setNewPharmacy((prev) => ({ ...prev, quartier: event.target.value }))}
+                    list="admin-quartiers"
+                    placeholder="Centre-ville"
+                    className={fieldClass}
+                  />
+                  <datalist id="admin-quartiers">
+                    {existingQuartiers.map((q) => (
+                      <option key={q} value={q} />
+                    ))}
+                  </datalist>
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold text-slate-600">Téléphone *</span>
+                  <input
+                    id="np-phone"
+                    value={newPharmacy.phone}
+                    onChange={(event) => setNewPharmacy((prev) => ({ ...prev, phone: event.target.value }))}
+                    placeholder="6XX XX XX XX"
+                    className={fieldClass}
+                  />
+                </label>
+                <label className="block sm:col-span-2">
+                  <span className="text-xs font-semibold text-slate-600">Adresse</span>
+                  <input
+                    id="np-address"
+                    value={newPharmacy.address}
+                    onChange={(event) => setNewPharmacy((prev) => ({ ...prev, address: event.target.value }))}
+                    placeholder="Rue du Marché, à côté de la Mairie"
+                    className={fieldClass}
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold text-slate-600">Latitude</span>
+                  <input
+                    id="np-lat"
+                    type="number"
+                    step="any"
+                    value={newPharmacy.latitude}
+                    onChange={(event) =>
+                      setNewPharmacy((prev) => ({ ...prev, latitude: Number(event.target.value) }))
+                    }
+                    className={fieldClass}
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold text-slate-600">Longitude</span>
+                  <input
+                    id="np-lng"
+                    type="number"
+                    step="any"
+                    value={newPharmacy.longitude}
+                    onChange={(event) =>
+                      setNewPharmacy((prev) => ({ ...prev, longitude: Number(event.target.value) }))
+                    }
+                    className={fieldClass}
+                  />
+                </label>
+              </div>
+              {isSuper && (
+                <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    id="np-verified"
+                    type="checkbox"
+                    checked={newPharmacy.verified}
+                    onChange={(event) =>
+                      setNewPharmacy((prev) => ({ ...prev, verified: event.target.checked }))
+                    }
+                    className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                  />
+                  Vérifiée immédiatement (compte activé dès la création)
+                </label>
+              )}
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreate(false)}
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreatePharmacy}
+                  className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-700"
+                >
+                  Créer la pharmacie
+                </button>
+              </div>
+            </div>
+          )}
+          {data.pharmacies.length === 0 && !showCreate && (
             <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
               Aucune pharmacie dans ce périmètre.
             </p>
@@ -323,12 +566,35 @@ export default function AdminSpace({
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${pharmacy.accountStatus === 'actif' ? 'bg-slate-100 text-slate-700' : pharmacy.accountStatus === 'suspendu' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800'}`}>
                           {ACCOUNT_STATUS_LABELS[pharmacy.accountStatus]}
                         </span>
+                        <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
+                          Quartier {pharmacy.quartier}
+                        </span>
                       </div>
                       <p className="mt-1 text-xs text-slate-500">
-                        {pharmacy.city} — Quartier {pharmacy.quartier} · {pharmacy.phone} · Source : {pharmacy.source}
+                        {pharmacy.city} · {pharmacy.address || 'Adresse à préciser'} · {pharmacy.phone} · Source : {pharmacy.source}
+                      </p>
+                      <p className="mt-0.5 font-mono text-xs text-slate-400">
+                        {pharmacy.latitude.toFixed(5)}, {pharmacy.longitude.toFixed(5)}
                       </p>
                     </div>
                     <div className="flex shrink-0 gap-2">
+                      {editingId === pharmacy.id ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditingId(null)}
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                        >
+                          Annuler
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => startEdit(pharmacy)}
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                        >
+                          Modifier la fiche
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => run('Pharmacie validée (profil + compte).', () => {
@@ -352,6 +618,87 @@ export default function AdminSpace({
                       </button>
                     </div>
                   </div>
+                  {editingId === pharmacy.id && (
+                    <div className="mt-4 rounded-xl border border-violet-200 bg-violet-50/40 p-4">
+                      <p className="text-xs font-bold text-slate-700">Modifier la fiche (nom, quartier, adresse, téléphone, GPS)</p>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <label className="block">
+                          <span className="text-xs font-semibold text-slate-600">Nom</span>
+                          <input
+                            aria-label="Nom de la pharmacie (édition)"
+                            value={editDraft.name}
+                            onChange={(event) => setEditDraft((prev) => ({ ...prev, name: event.target.value }))}
+                            className={fieldClass}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="text-xs font-semibold text-slate-600">Quartier</span>
+                          <input
+                            aria-label="Quartier de la pharmacie (édition)"
+                            value={editDraft.quartier}
+                            onChange={(event) => setEditDraft((prev) => ({ ...prev, quartier: event.target.value }))}
+                            className={fieldClass}
+                          />
+                        </label>
+                        <label className="block sm:col-span-2">
+                          <span className="text-xs font-semibold text-slate-600">Adresse</span>
+                          <input
+                            aria-label="Adresse de la pharmacie (édition)"
+                            value={editDraft.address}
+                            onChange={(event) => setEditDraft((prev) => ({ ...prev, address: event.target.value }))}
+                            className={fieldClass}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="text-xs font-semibold text-slate-600">Téléphone</span>
+                          <input
+                            aria-label="Téléphone de la pharmacie (édition)"
+                            value={editDraft.phone}
+                            onChange={(event) => setEditDraft((prev) => ({ ...prev, phone: event.target.value }))}
+                            className={fieldClass}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="text-xs font-semibold text-slate-600">Latitude</span>
+                          <input
+                            id="ep-lat"
+                            type="number"
+                            step="any"
+                            value={editDraft.latitude}
+                            onChange={(event) => setEditDraft((prev) => ({ ...prev, latitude: event.target.value }))}
+                            className={fieldClass}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="text-xs font-semibold text-slate-600">Longitude</span>
+                          <input
+                            id="ep-lng"
+                            type="number"
+                            step="any"
+                            value={editDraft.longitude}
+                            onChange={(event) => setEditDraft((prev) => ({ ...prev, longitude: event.target.value }))}
+                            className={fieldClass}
+                          />
+                        </label>
+                      </div>
+                      <div className="mt-3 flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditingId(null)}
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                        >
+                          Fermer
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSaveEdit(pharmacy.id)}
+                          className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-violet-700"
+                        >
+                          Enregistrer la fiche
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })}
