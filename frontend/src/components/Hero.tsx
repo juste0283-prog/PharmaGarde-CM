@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
-import type { Position } from '../data/pharmacies'
+import type { City, Position } from '../data/pharmacies'
 
 interface HeroProps {
-  cities: string[]
+  cities: City[]
   city: string
   onCityChange: (city: string) => void
   onPositionChange: (position: Position) => void
@@ -15,7 +15,6 @@ type GeoState =
   | { status: 'error'; message: string }
 
 export default function Hero({ cities, city, onCityChange, onPositionChange }: HeroProps) {
-  const [quartier, setQuartier] = useState('')
   const [geo, setGeo] = useState<GeoState>({ status: 'idle' })
   const geoId = useRef(0)
 
@@ -57,7 +56,7 @@ export default function Hero({ cities, city, onCityChange, onPositionChange }: H
       <div className="relative mx-auto max-w-6xl px-4 py-20 text-center sm:px-6 sm:py-28">
         <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium ring-1 ring-white/20">
           <span className="size-2 rounded-full bg-emerald-300" aria-hidden="true" />
-          Ville pilote : Yaoundé &amp; Douala
+          {cities.length || 10} villes couvertes (chefs-lieux de région du Cameroun)
         </p>
         <h1 className="mx-auto max-w-3xl text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
           Trouvez une pharmacie de garde près de chez vous
@@ -106,37 +105,16 @@ export default function Hero({ cities, city, onCityChange, onPositionChange }: H
                       Chargement…
                     </option>
                   ) : (
-                    cities.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))
+                    <>
+                      <option value="">Toutes les villes — Cameroun</option>
+                      {cities.map((c) => (
+                        <option key={c.name} value={c.name}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </>
                   )}
                 </select>
-              </div>
-              <div className="flex flex-1 items-center gap-2 rounded-xl px-3 py-2 text-slate-800">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  className="size-5 shrink-0 text-emerald-600"
-                  aria-hidden="true"
-                >
-                  <path d="M3 21h18" />
-                  <path d="M5 21V7l7-4 7 4v14" />
-                  <path d="M9 21v-6h6v6" />
-                </svg>
-                <input
-                  id="quartier"
-                  type="text"
-                  value={quartier}
-                  onChange={(e) => setQuartier(e.target.value)}
-                  placeholder="Quartier (facultatif)"
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
-                />
               </div>
             </div>
             <button

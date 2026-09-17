@@ -12,7 +12,13 @@ export function StatusBadge({ pharmacy }: { pharmacy: Pharmacy }) {
   )
 }
 
-export default function PharmacyCard({ pharmacy }: { pharmacy: Pharmacy }) {
+export default function PharmacyCard({
+  pharmacy,
+  onDirections,
+}: {
+  pharmacy: Pharmacy
+  onDirections: (pharmacy: Pharmacy) => void
+}) {
   return (
     <article className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
@@ -22,8 +28,9 @@ export default function PharmacyCard({ pharmacy }: { pharmacy: Pharmacy }) {
 
       <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
         <MapPinIcon />
-        {pharmacy.city} — {pharmacy.quartier}
+        {pharmacy.city} · {pharmacy.region}
       </p>
+      <p className="mt-0.5 pl-5 text-sm text-slate-600">Quartier : {pharmacy.quartier}</p>
       <p className="mt-0.5 pl-5 text-sm text-slate-600">{pharmacy.address}</p>
 
       <dl className="mt-4 space-y-2 rounded-xl bg-slate-50 p-3 text-sm">
@@ -48,23 +55,38 @@ export default function PharmacyCard({ pharmacy }: { pharmacy: Pharmacy }) {
         )}
       </dl>
 
-      <div className="mt-4 flex gap-3 pt-2">
+      <div className="mt-4 flex flex-1 flex-col pt-2">
+        <div className="flex gap-3">
+          <a
+            href={`tel:${pharmacy.phone.replace(/\s/g, '')}`}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+          >
+            <PhoneIcon /> Appeler
+          </a>
+          <button
+            type="button"
+            onClick={() => onDirections(pharmacy)}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:border-emerald-500 hover:text-emerald-700"
+          >
+            <RouteIcon /> Itinéraire
+          </button>
+        </div>
         <a
-          href={`tel:${pharmacy.phone.replace(/\s/g, '')}`}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+          href={`https://www.google.com/maps/dir/?api=1&destination=${pharmacy.latitude},${pharmacy.longitude}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 text-center text-xs font-medium text-slate-400 transition-colors hover:text-emerald-700"
         >
-          <PhoneIcon /> Appeler
-        </a>
-        <a
-          href="#"
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:border-emerald-500 hover:text-emerald-700"
-        >
-          <RouteIcon /> Itinéraire
+          Ouvrir dans Google Maps ↗
         </a>
       </div>
+
+      <p className="mt-3 text-[11px] leading-snug text-slate-400">
+        Source : {pharmacy.source}
+      </p>
       <button
         type="button"
-        className="mt-3 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-rose-600"
+        className="mt-2 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-rose-600"
       >
         <FlagIcon /> Signaler une anomalie
       </button>

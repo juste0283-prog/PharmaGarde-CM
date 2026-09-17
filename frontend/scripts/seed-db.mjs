@@ -13,12 +13,24 @@ const minutesAgo = (m) => new Date(now - m * 60_000).toISOString()
 const hoursAgo = (h) => new Date(now - h * 3_600_000).toISOString()
 const daysAgo = (d) => new Date(now - d * 86_400_000).toISOString()
 
+const ADMIN_SOURCE =
+  'Planning national des gardes — vérifié par l\u2019administration'
+const MUNICIPAL_SOURCE = 'Planning municipal de garde'
+
 const cities = [
-  { name: 'Yaoundé', slug: 'yaounde' },
-  { name: 'Douala', slug: 'douala' },
+  { name: 'Yaoundé', slug: 'yaounde', region: 'Centre', lat: 3.8667, lng: 11.5167, pilot: true },
+  { name: 'Douala', slug: 'douala', region: 'Littoral', lat: 4.0505, lng: 9.6991, pilot: true },
+  { name: 'Bafoussam', slug: 'bafoussam', region: 'Ouest', lat: 5.4772, lng: 10.4203 },
+  { name: 'Bamenda', slug: 'bamenda', region: 'Nord-Ouest', lat: 5.9597, lng: 10.146 },
+  { name: 'Bertoua', slug: 'bertoua', region: 'Est', lat: 4.5773, lng: 13.6846 },
+  { name: 'Buéa', slug: 'buea', region: 'Sud-Ouest', lat: 4.1533, lng: 9.2843 },
+  { name: 'Ebolowa', slug: 'ebolowa', region: 'Sud', lat: 2.9001, lng: 11.1504 },
+  { name: 'Garoua', slug: 'garoua', region: 'Nord', lat: 9.3012, lng: 13.398 },
+  { name: 'Maroua', slug: 'maroua', region: 'Extrême-Nord', lat: 10.5915, lng: 14.3157 },
+  { name: 'Ngaoundéré', slug: 'ngaoundere', region: 'Adamaoua', lat: 7.3211, lng: 13.5846 },
 ]
 
-const pharmacies = [
+const pilots = [
   {
     city: 'Yaoundé',
     name: 'Pharmacie du Centre',
@@ -27,8 +39,10 @@ const pharmacies = [
     phone: '+237 690 00 00 01',
     lat: 3.8667,
     lng: 11.5167,
-    source: 'Planning municipal de garde — vérifié par l\u2019administration',
+    source: MUNICIPAL_SOURCE,
     lastUpdated: hoursAgo(2),
+    verified: true,
+    confirmedMinutesAgo: 18,
   },
   {
     city: 'Yaoundé',
@@ -38,8 +52,9 @@ const pharmacies = [
     phone: '+237 690 00 00 02',
     lat: 3.8877,
     lng: 11.5184,
-    source: 'Planning municipal de garde',
+    source: ADMIN_SOURCE,
     lastUpdated: hoursAgo(6),
+    verified: true,
   },
   {
     city: 'Yaoundé',
@@ -49,8 +64,9 @@ const pharmacies = [
     phone: '+237 690 00 00 03',
     lat: 3.83,
     lng: 11.455,
-    source: 'Planning municipal de garde',
+    source: MUNICIPAL_SOURCE,
     lastUpdated: daysAgo(4),
+    verified: true,
   },
   {
     city: 'Douala',
@@ -60,8 +76,10 @@ const pharmacies = [
     phone: '+237 690 00 00 04',
     lat: 4.0505,
     lng: 9.699,
-    source: 'Planning municipal de garde — vérifié par l\u2019administration',
+    source: ADMIN_SOURCE,
     lastUpdated: hoursAgo(1),
+    verified: true,
+    confirmedMinutesAgo: 5,
   },
   {
     city: 'Douala',
@@ -71,8 +89,9 @@ const pharmacies = [
     phone: '+237 690 00 00 05',
     lat: 4.035,
     lng: 9.692,
-    source: 'Planning municipal de garde',
+    source: MUNICIPAL_SOURCE,
     lastUpdated: hoursAgo(3),
+    verified: true,
   },
   {
     city: 'Douala',
@@ -82,34 +101,114 @@ const pharmacies = [
     phone: '+237 690 00 00 06',
     lat: 4.06,
     lng: 9.682,
-    source: 'Planning municipal de garde',
+    source: MUNICIPAL_SOURCE,
     lastUpdated: hoursAgo(20),
+    verified: true,
   },
 ]
 
-// startHour/endHour : garde de nuit (21h -> 2h du matin si endHour <= startHour)
-const schedules = [
-  { name: 'Pharmacie du Centre', startHour: 18, endHour: 8, source: 'Import planning municipal' },
-  { name: 'Pharmacie de la Paix', startHour: 19, endHour: 7, source: 'Saisie administration' },
-  { name: 'Pharmacie Espérance', startHour: 18, endHour: 8, source: 'Import planning municipal' },
-  { name: 'Pharmacie Saint-Michel', startHour: 18, endHour: 8, source: 'Saisie administration' },
-  { name: 'Pharmacie du Jourdain', startHour: 19, endHour: 7, source: 'Import planning municipal' },
-  { name: 'Pharmacie La Renaissance', startHour: 18, endHour: 8, source: 'Import planning municipal' },
+// 8 autres chefs-lieux × 3 pharmacies générées (quartiers offset autour de la ville)
+const generated = [
+  {
+    city: 'Bafoussam',
+    quartiers: [
+      { name: 'Banengo', dLat: -0.028, dLng: -0.022 },
+      { name: 'Centre-ville', dLat: 0.006, dLng: 0.011 },
+      { name: 'Tchimendem', dLat: 0.021, dLng: -0.013 },
+    ],
+    names: ['Pharmacie de la Gare', 'Pharmacie Cathédrale', 'Pharmacie du Stade'],
+  },
+  {
+    city: 'Bamenda',
+    quartiers: [
+      { name: 'Nkwen', dLat: -0.02, dLng: -0.015 },
+      { name: 'Old Town', dLat: 0.004, dLng: 0.012 },
+      { name: 'Mbatu', dLat: 0.018, dLng: -0.009 },
+    ],
+    names: ['Pharmacie du Lac', 'Pharmacie du Marché', 'Pharmacie Santa'],
+  },
+  {
+    city: 'Bertoua',
+    quartiers: [
+      { name: 'Mandjou', dLat: -0.025, dLng: -0.018 },
+      { name: 'Chantier', dLat: 0.007, dLng: 0.013 },
+      { name: 'Tibati', dLat: 0.019, dLng: -0.011 },
+    ],
+    names: ['Pharmacie de l\u2019Est', 'Pharmacie Centrale', 'Pharmacie du Carrefour'],
+  },
+  {
+    city: 'Buéa',
+    quartiers: [
+      { name: 'Molyko', dLat: -0.024, dLng: -0.017 },
+      { name: 'Small Soppo', dLat: 0.006, dLng: 0.012 },
+      { name: 'Buea Town', dLat: 0.02, dLng: -0.01 },
+    ],
+    names: ['Pharmacie Molyko', 'Pharmacie de la Montagne', 'Pharmacie du Palmier'],
+  },
+  {
+    city: 'Ebolowa',
+    quartiers: [
+      { name: 'Ngoazip', dLat: -0.026, dLng: -0.019 },
+      { name: 'Melen', dLat: 0.005, dLng: 0.012 },
+      { name: 'Centre-ville', dLat: 0.022, dLng: -0.012 },
+    ],
+    names: ['Pharmacie du Sud', 'Pharmacie de la Forêt', 'Pharmacie de la Mairie'],
+  },
+  {
+    city: 'Garoua',
+    quartiers: [
+      { name: 'Boki', dLat: -0.027, dLng: -0.02 },
+      { name: 'Doualare', dLat: 0.006, dLng: 0.013 },
+      { name: 'Centre-ville', dLat: 0.02, dLng: -0.011 },
+    ],
+    names: ['Pharmacie de la Bénoué', 'Pharmacie Doualare', 'Pharmacie du Grand Marché'],
+  },
+  {
+    city: 'Maroua',
+    quartiers: [
+      { name: 'Dougoui', dLat: -0.025, dLng: -0.018 },
+      { name: 'Pitoaré', dLat: 0.006, dLng: 0.012 },
+      { name: 'Yelwa', dLat: 0.019, dLng: -0.01 },
+    ],
+    names: ['Pharmacie du Marché Central', 'Pharmacie Pitoaré', 'Pharmacie Yelwa'],
+  },
+  {
+    city: 'Ngaoundéré',
+    quartiers: [
+      { name: 'Baladji', dLat: -0.024, dLng: -0.017 },
+      { name: 'Dang', dLat: 0.006, dLng: 0.013 },
+      { name: 'Malang', dLat: 0.021, dLng: -0.012 },
+    ],
+    names: ['Pharmacie du Plateau', 'Pharmacie Malang', 'Pharmacie de la Gare'],
+  },
 ]
 
-// confirmations horodatées relatives à maintenant (minutes)
-const confirmations = [
-  { name: 'Pharmacie du Centre', minutesAgo: 18, dutyWeekday: 0 },
-  { name: 'Pharmacie Saint-Michel', minutesAgo: 5, dutyWeekday: 0 },
-]
+const generatedPharmacies = generated.flatMap((g, cityIndex) => {
+  const city = cities.find((c) => c.name === g.city)
+  return g.names.map((name, i) => {
+    const quartier = g.quartiers[i]
+    const confirmed = i === 0
+    const stale = i === 2 && cityIndex % 3 === 1
+    const reported = i === 2 && cityIndex % 3 === 0
+    return {
+      city: g.city,
+      name,
+      quartier: quartier.name,
+      address: `Quartier principal — secteur ${quartier.name}`,
+      phone: `+237 691 ${String(20 + cityIndex).padStart(2, '0')} ${i + 1}${i + 1}`,
+      lat: city.lat + quartier.dLat,
+      lng: city.lng + quartier.dLng,
+      source:
+        i === 1 ? ADMIN_SOURCE : MUNICIPAL_SOURCE,
+      lastUpdated: stale ? daysAgo(5) : hoursAgo(2 + cityIndex),
+      verified: true,
+      confirmedMinutesAgo: confirmed ? 10 + cityIndex * 6 + i * 3 : undefined,
+      reportedMinutesAgo: reported ? 30 + cityIndex * 10 : undefined,
+    }
+  })
+})
 
-const report = {
-  name: 'Pharmacie du Jourdain',
-  type: 'fermeture',
-  description: 'Pharmacie fermée malgré la garde affichée à 20h.',
-  status: 'en_verification',
-  minutesAgo: 40,
-}
+const pharmacies = [...pilots, ...generatedPharmacies]
 
 const SQL = await initSqlJs()
 const db = new SQL.Database()
@@ -121,6 +220,9 @@ db.run(`
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     slug TEXT NOT NULL UNIQUE,
+    region TEXT NOT NULL,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
     is_pilot INTEGER NOT NULL DEFAULT 0
   );
 
@@ -175,14 +277,17 @@ db.run(`
   CREATE INDEX idx_reports_pharmacy_status ON reports(pharmacy_id, status);
 `)
 
-const cityNames = new Map()
-const insertCity = db.prepare(
-  'INSERT INTO cities (name, slug, is_pilot) VALUES (?, ?, 1)',
-)
-for (const city of cities) {
-  insertCity.run([city.name, city.slug])
+const todayWeekday = new Date().getDay()
+
+const cityIds = new Map()
+const insertCity = db.prepare(`
+  INSERT INTO cities (name, slug, region, latitude, longitude, is_pilot)
+  VALUES (?, ?, ?, ?, ?, ?)
+`)
+for (const c of cities) {
+  insertCity.run([c.name, c.slug, c.region, c.lat, c.lng, c.pilot ? 1 : 0])
   const row = db.exec('SELECT last_insert_rowid() AS id')[0].values[0][0]
-  cityNames.set(city.name, row)
+  cityIds.set(c.name, row)
 }
 insertCity.free()
 
@@ -191,41 +296,45 @@ const insertPharmacy = db.prepare(`
   INSERT INTO pharmacies
     (name, city_id, quartier, address, phone, latitude, longitude,
      source, verified, last_updated, created_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `)
 for (const p of pharmacies) {
   insertPharmacy.run([
     p.name,
-    cityNames.get(p.city),
+    cityIds.get(p.city),
     p.quartier,
     p.address,
     p.phone,
     p.lat,
     p.lng,
     p.source,
+    p.verified ? 1 : 0,
     p.lastUpdated,
-    minutesAgo(60 * 24),
+    hoursAgo(24 * 60),
   ])
   const row = db.exec('SELECT last_insert_rowid() AS id')[0].values[0][0]
-  pharmacyIds.set(p.name, row)
+  pharmacyIds.set(`${p.city}::${p.name}`, row)
 }
 insertPharmacy.free()
 
+let scheduleId = 0
+const scheduleByPharmacy = new Map()
 const insertSchedule = db.prepare(`
   INSERT INTO duty_schedules
     (pharmacy_id, weekday, start, end, status, source, created_at)
   VALUES (?, ?, ?, ?, 'publie', ?, ?)
 `)
-let scheduleId = 0
-const scheduleByPharmacy = new Map()
-for (const s of schedules) {
-  const pid = pharmacyIds.get(s.name)
-  const start = `${String(s.startHour).padStart(2, '0')}:00`
-  const end = `${String(s.endHour).padStart(2, '0')}:00`
+for (const p of pharmacies) {
+  const pid = pharmacyIds.get(`${p.city}::${p.name}`)
+  const startHours = pharmacies.indexOf(p) % 3 === 1 ? 19 : 18
+  const endHours = startHours === 19 ? 7 : 8
+  const source = startHours === 19 ? ADMIN_SOURCE : MUNICIPAL_SOURCE
+  const start = `${String(startHours).padStart(2, '0')}:00`
+  const end = `${String(endHours).padStart(2, '0')}:00`
   for (const weekday of [0, 1, 2, 3, 4, 5, 6]) {
     scheduleId += 1
-    insertSchedule.run([pid, weekday, start, end, s.source, hoursAgo(24)])
-    scheduleByPharmacy.set(`${s.name}:${weekday}`, scheduleId)
+    insertSchedule.run([pid, weekday, start, end, source, hoursAgo(24)])
+    scheduleByPharmacy.set(`${p.city}::${p.name}:${weekday}`, scheduleId)
   }
 }
 insertSchedule.free()
@@ -235,12 +344,15 @@ const insertConfirmation = db.prepare(`
     (pharmacy_id, duty_schedule_id, actor, timestamp, result)
   VALUES (?, ?, ?, ?, 'ok')
 `)
-for (const c of confirmations) {
+let confirmationsCount = 0
+for (const p of pharmacies) {
+  if (p.confirmedMinutesAgo === undefined) continue
+  confirmationsCount += 1
   insertConfirmation.run([
-    pharmacyIds.get(c.name),
-    scheduleByPharmacy.get(`${c.name}:${c.dutyWeekday}`),
-    `${c.name} (titulaire)`,
-    minutesAgo(c.minutesAgo),
+    pharmacyIds.get(`${p.city}::${p.name}`),
+    scheduleByPharmacy.get(`${p.city}::${p.name}:${todayWeekday}`),
+    `${p.name} (titulaire)`,
+    minutesAgo(p.confirmedMinutesAgo),
   ])
 }
 insertConfirmation.free()
@@ -248,20 +360,25 @@ insertConfirmation.free()
 const insertReport = db.prepare(`
   INSERT INTO reports
     (pharmacy_id, author, type, description, status, created_at)
-  VALUES (?, 'Anonyme', ?, ?, ?, ?)
+  VALUES (?, 'Anonyme', 'fermeture', ?, 'en_verification', ?)
 `)
-insertReport.run([
-  pharmacyIds.get(report.name),
-  report.type,
-  report.description,
-  report.status,
-  minutesAgo(report.minutesAgo),
-])
+let reportsCount = 0
+for (const p of pharmacies) {
+  if (p.reportedMinutesAgo === undefined) continue
+  reportsCount += 1
+  insertReport.run([
+    pharmacyIds.get(`${p.city}::${p.name}`),
+    `Pharmacie fermée malgré la garde affichée (signalement ${reportsCount}).`,
+    minutesAgo(p.reportedMinutesAgo),
+  ])
+}
 insertReport.free()
 
 mkdirSync(dbDir, { recursive: true })
 writeFileSync(dbPath, Buffer.from(db.export()))
-console.log(`pharmagarde.db générée : ${dbPath}`)
+console.log(
+  `pharmagarde.db générée : ${dbPath} (${cities.length} villes, ${pharmacies.length} pharmacies, ${confirmationsCount} confirmations, ${reportsCount} signalements)`,
+)
 
 const wasmSrc = join(projectDir, 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm')
 copyFileSync(wasmSrc, join(dbDir, 'sql-wasm.wasm'))

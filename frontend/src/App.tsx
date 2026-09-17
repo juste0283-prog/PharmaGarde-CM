@@ -1,27 +1,53 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import Header from './components/Header'
 import Hero from './components/Hero'
-import PharmaciesGarde from './components/PharmaciesGarde'
 import HowItWorks from './components/HowItWorks'
 import Reliability from './components/Reliability'
 import ReportCta from './components/ReportCta'
 import Footer from './components/Footer'
+import ResultsView, { type ViewMode } from './components/ResultsView'
 import { usePharmacyData } from './hooks/usePharmacyData'
-import type { Position } from './data/pharmacies'
+import {
+  EMPTY_FILTERS,
+  type Pharmacy,
+  type PharmacyFilters,
+  type Position,
+} from './data/pharmacies'
 
 export default function App() {
   const [city, setCity] = useState('')
   const [position, setPosition] = useState<Position | null>(null)
-  const { cities, pharmacies, loading, error } = usePharmacyData(city, position)
+  const [view, setView] = useState<ViewMode>('liste')
+  const [filters, setFilters] = useState<PharmacyFilters>(EMPTY_FILTERS)
+  const [routeTargetId, setRouteTargetId] = useState<number | null>(null)
+  const { cities, quartiers, pharmacies, quartierPoints, loading, error } =
+    usePharmacyData(city, position, filters)
 
-  const defaultCity = cities[0] ?? ''
-  const activeCity = city || defaultCity
+  const cityObject = city ? cities.find((c) => c.name === city) : undefined
 
-  useEffect(() => {
-    if (!city && defaultCity) {
-      setCity(defaultCity)
-    }
-  }, [city, defaultCity])
+  const handleCityChange = useCallback((nextCity: string) => {
+    setCity(nextCity)
+    setRouteTargetId(null)
+    setFilters((previous) => ({ ...previous, quartier: '' }))
+  }, [])
+
+  const handleFiltersChange = useCallback((next: PharmacyFilters) => {
+    setFilters(next)
+    setRouteTargetId(null)
+  }, [])
+
+  const handleDirections = useCallback((pharmacy: Pharmacy) => {
+    setRouteTargetId(pharmacy.id)
+    setView('carte')
+    requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLElement>('#pharmacies')
+        ?.scrollIntoView({ behavior: 'smooth' })
+    })
+  }, [])
+
+  const routeTarget =
+    pharmacies.find((p) => p.id === routeTargetId) ?? null
 
   return (
     <div className="min-h-screen">
@@ -29,15 +55,26 @@ export default function App() {
       <main>
         <Hero
           cities={cities}
-          city={city || defaultCity}
-          onCityChange={setCity}
+          city={city}
+          onCityChange={handleCityChange}
           onPositionChange={setPosition}
         />
-        <PharmaciesGarde
-          city={activeCity}
+        <ResultsView
+          cities={cities}
+          city={cityObject}
+          quartiers={quartiers}
           pharmacies={pharmacies}
+          quartierPoints={quartierPoints}
           loading={loading}
           error={error}
+          position={position}
+          view={view}
+          filters={filters}
+          routeTarget={routeTarget}
+          onViewChange={setView}
+          onCityChange={handleCityChange}
+          onFiltersChange={handleFiltersChange}
+          onDirections={handleDirections}
         />
         <HowItWorks />
         <Reliability />
