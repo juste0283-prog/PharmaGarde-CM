@@ -78,10 +78,10 @@ export default function ResultsView({
             <p className="mt-2 text-slate-600">
               {city ? (
                 <>
-                  {city.name} · {city.region} — gardes valides pour la date et l'heure courantes.
+                  {city.name} · {city.region}: gardes valides pour la date et l'heure courantes.
                 </>
               ) : (
-                'Tout le Cameroun — chefs-lieux de région, gardes valides pour la date et l\'heure courantes.'
+                'Tout le Cameroun. Chefs-lieux de région, gardes valides pour la date et l\'heure courantes.'
               )}
             </p>
           </div>
@@ -108,11 +108,14 @@ export default function ResultsView({
             </div>
           </div>
         </div>
-
+        {/*
+        je ne veux plus voir ce paragraghe visible sur maplateforme !
         <p className="mt-4 text-xs text-slate-400">
           Données issues de la base locale <code>public/db/pharmagarde.db</code> (SQLite) — tri par
           proximité puis fiabilité.
         </p>
+
+        -*/}
 
         {!loading && error === null && (
           <div className="mt-5">
