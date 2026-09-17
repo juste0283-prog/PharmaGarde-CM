@@ -165,7 +165,9 @@ export default function ResultsView({
               <>
                 <p className="mb-4 text-sm font-medium text-slate-500">
                   {pharmacies.length} pharmacie{pharmacies.length > 1 ? 's' : ''} à garde active
-                  {position !== null ? ' — triées par distance' : ' — classées par fiabilité'}
+                  {position !== null
+                    ? ' ( triées par distance )'
+                    : ' ( classées par fiabilité )'}
                 </p>
                 <div className="space-y-10">
                   {sections.map((c) => {
