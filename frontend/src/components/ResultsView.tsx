@@ -28,6 +28,7 @@ interface ResultsViewProps {
   onCityChange: (cityName: string) => void
   onFiltersChange: (filters: PharmacyFilters) => void
   onDirections: (pharmacy: Pharmacy) => void
+  onReport?: (pharmacy: Pharmacy) => void
 }
 
 function formatNow() {
@@ -62,6 +63,7 @@ export default function ResultsView({
   onCityChange,
   onFiltersChange,
   onDirections,
+  onReport,
 }: ResultsViewProps) {
   const sections = city ? [city] : cities
   const hasActiveFilters =
@@ -217,6 +219,7 @@ export default function ResultsView({
                                 key={pharmacy.id}
                                 pharmacy={pharmacy}
                                 onDirections={onDirections}
+                                onReport={onReport}
                               />
                             ))}
                           </div>

@@ -4,7 +4,7 @@ const FOOTER_COLUMNS: { heading: string; links: string[] }[] = [
   { heading: 'Projet', links: ['Ville pilote', 'Fiabilité', 'Signaler une anomalie'] },
 ]
 
-export default function Footer() {
+export default function Footer({ onOpenSpace }: { onOpenSpace: () => void }) {
   return (
     <footer className="border-t border-slate-200 bg-white">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
@@ -44,9 +44,19 @@ export default function Footer() {
               <ul className="mt-4 space-y-2.5">
                 {column.links.map((link) => (
                   <li key={link}>
-                    <a href="#" className="text-sm text-slate-600 transition-colors hover:text-emerald-700">
-                      {link}
-                    </a>
+                    {link === 'Espace Pharmacie' ? (
+                      <button
+                        type="button"
+                        onClick={onOpenSpace}
+                        className="text-sm text-slate-600 transition-colors hover:text-emerald-700"
+                      >
+                        {link}
+                      </button>
+                    ) : (
+                      <a href="#" className="text-sm text-slate-600 transition-colors hover:text-emerald-700">
+                        {link}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>

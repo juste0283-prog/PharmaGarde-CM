@@ -27,6 +27,7 @@ export function usePharmacyData(
   city: string,
   position: Position | null,
   filters: PharmacyFilters,
+  reloadKey = 0,
 ): PharmacyData {
   const [state, setState] = useState<PharmacyData>({
     cities: [],
@@ -78,7 +79,7 @@ export function usePharmacyData(
     return () => {
       cancelled = true
     }
-  }, [city, position, filters])
+  }, [city, position, filters, reloadKey])
 
   return state
 }

@@ -25,10 +25,25 @@ itinéraire et signalement des incohérences.
 - **Itinéraire intégré** : le bouton « Itinéraire » trace la ligne de départ (position ou centre-ville)
   vers la pharmacie, affiche la distance à vol d'oiseau et ouvre l'information de la pharmacie — un
   lien « Ouvrir dans Google Maps » reste disponible en repli.
-- **Fiabilité communautaire** : statuts *confirmée*, *vérifiée*, *ancienne donnée*, *signalée*,
-  calculés à partir des confirmations et signalements ; tri par proximité puis fiabilité.
+- **Fiabilité communautaire** : statuts *confirmée*, *vérifiée*, *à vérifier*, *ancienne donnée*,
+  *signalée*, calculés à partir des confirmations et signalements ; tri par proximité puis fiabilité.
 - **Garde de nuit** : horaires affichés (« Garde de nuit : de 18h à 8h ») selon le planning du jour.
 - **Filtres** : quartier (par ville), statut de fiabilité, pharmacies confirmées uniquement.
+- **Signalement public** : sur chaque carte de pharmacie, « Signaler une anomalie » ouvre un
+  formulaire (type, description, contact facultatif) ; le signalement est modéré côté back-office.
+- **Back-office multi-rôles** (bouton « Espace Pharmacie » / « Connexion »), conforme au cahier des
+  charges — 4 espaces distincts :
+  - **Visiteur / Utilisateur** (site public) : rechercher, filtrer, localiser, appeler, itinéraire
+    et signaler une anomalie ;
+  - **Pharmacie** : gérer son profil et ses horaires, publier/masquer son planning de garde,
+    confirmer sa présence (horodatée) et traiter les alertes (signalements reçus) ;
+  - **Administrateur** (ville/zone assignée) : valider les pharmacies et comptes, gérer les gardes,
+    modérer les signalements, statistiques locales ;
+  - **Super administrateur** : plateforme entière — toutes les villes, rôles et comptes,
+    paramètres & sécurité, journal d'audit, arbitrage des signalements.
+
+  Connexion en mode démonstration (choix du profil, sans mot de passe), session persistante entre
+  les visites et journalisation de toutes les actions dans le journal d'audit.
 
 ---
 
@@ -59,10 +74,11 @@ PharmaGarde_CM/
 │   ├── scripts/seed-db.mjs       # Génération de la base de démonstration
 │   └── src/
 │       ├── components/           # Header, Hero, FiltersBar, ResultsView, PharmacyMap,
-│       │                         # PharmacyCard, Reliability, HowItWorks, ReportCta, Footer
-│       ├── data/pharmacies.ts    # Types (City, QuartierPoint, Pharmacy) et constantes
-│       ├── db/database.ts        # Chargement SQLite + WASM
-│       ├── db/queries.ts         # Requêtes (villes, pharmacies, plannings, points de quartier)
+│       │                         # PharmacyCard, ReportModal, PharmacySpace, BackOffice,
+│       │                         # AdminSpace, Reliability, HowItWorks, ReportCta, Footer
+│       ├── data/pharmacies.ts    # Types (City, PharmPoint, roles/statuts/audit) et constantes
+│       ├── db/database.ts        # Chargement SQLite + WASM + migrations (users, audit_log)
+│       ├── db/queries.ts         # Requêtes (villes, pharmacies, plannings, back-office)
 │       └── hooks/usePharmacyData.ts
 ├── backend/                 # API Node/Express (squelette en cours de construction)
 │   └── src/index.ts
@@ -119,7 +135,9 @@ Schéma SQLite (fichier `frontend/public/db/pharmagarde.db`) :
 | `pharmacies`    | Nom, ville, quartier, adresse, téléphone, coordonnées, source |
 | `duty_schedules`| Horaires de garde (début/fin) par pharmacie        |
 | `confirmations` | Confirmations communautaires de la disponibilité   |
-| `reports`       | Signalements d'incohérence (fermée, occupée…)      |
+| `reports`       | Signalements d'incohérence (fermée, occupée…) + réponse et modération |
+| `users`         | Comptes du back-office (pharmacie, admin, super admin) et statut (actif/en_attente/suspendu) |
+| `audit_log`     | Journal d'audit (connexions et actions administrateur) |
 
 Par défaut, le jeu de données seed contient :
 
@@ -127,7 +145,9 @@ Par défaut, le jeu de données seed contient :
   Bertoua, Buea, Ebolowa, Garoua, Maroua, Ngaoundéré) ;
 - **30 pharmacies** réparties entre les villes (dont doublons possibles entre villes, gérés par une
   clé composée `ville::nom`) ;
-- **210 plannings de garde**, **30 confirmations**, **3 signalements** ;
+- **210 plannings de garde**, **30 confirmations**, **4 signalements** ;
+- **41 comptes back-office** : 1 super administrateur, 1 administrateur par ville, 1 compte par
+  pharmacie (dont 2 comptes en attente — Bertoua, Garoua — et 1 suspendu — Douala) ;
 - les **points de quartier** sont dérivés en requête (coordonnées moyennes des pharmacies d'un même
   quartier).
 
@@ -139,6 +159,7 @@ Le statut d'une pharmacie est déduit de ses confirmations et signalements :
 
 - **Confirmée** : dernière confirmation récente, fiable ;
 - **Vérifiée** : donnée vérifiée, à surveiller ;
+- **À vérifier** : au moins 2 signalements ouverts convergents (modération en attente) ;
 - **Ancienne donnée** : non confirmée depuis longtemps ;
 - **Signalée** : au moins un signalement d'incohérence.
 

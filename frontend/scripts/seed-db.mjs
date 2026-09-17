@@ -210,6 +210,15 @@ const generatedPharmacies = generated.flatMap((g, cityIndex) => {
 
 const pharmacies = [...pilots, ...generatedPharmacies]
 
+const pendingAccounts = new Set([
+  'Bertoua::Pharmacie Centrale',
+  'Garoua::Pharmacie du Grand Marché',
+])
+const suspendedAccounts = new Set(['Douala::Pharmacie La Renaissance'])
+for (const p of pharmacies) {
+  if (pendingAccounts.has(`${p.city}::${p.name}`)) p.verified = false
+}
+
 const SQL = await initSqlJs()
 const db = new SQL.Database()
 
@@ -268,13 +277,35 @@ db.run(`
     type TEXT NOT NULL,
     description TEXT NOT NULL,
     status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    response TEXT
+  );
+
+  CREATE TABLE users (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    role TEXT NOT NULL,
+    city_id INTEGER REFERENCES cities(id),
+    pharmacy_id INTEGER REFERENCES pharmacies(id),
+    status TEXT NOT NULL DEFAULT 'actif',
     created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE audit_log (
+    id INTEGER PRIMARY KEY,
+    actor TEXT NOT NULL,
+    action TEXT NOT NULL,
+    resource TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    metadata TEXT
   );
 
   CREATE INDEX idx_pharmacies_city ON pharmacies(city_id);
   CREATE INDEX idx_duty_pharmacy_weekday ON duty_schedules(pharmacy_id, weekday);
   CREATE INDEX idx_confirmations_pharmacy ON confirmations(pharmacy_id);
   CREATE INDEX idx_reports_pharmacy_status ON reports(pharmacy_id, status);
+  CREATE INDEX idx_users_role_city ON users(role, city_id);
 `)
 
 const todayWeekday = new Date().getDay()
@@ -316,6 +347,81 @@ for (const p of pharmacies) {
   pharmacyIds.set(`${p.city}::${p.name}`, row)
 }
 insertPharmacy.free()
+
+{ // comptes utilisateurs : super admin, un administrateur par ville, un compte par pharmacie
+  const insertUser = db.prepare(`
+    INSERT INTO users (name, email, role, city_id, pharmacy_id, status, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+  let userCount = 0
+  insertUser.run([
+    'Super administrateur — Direction générale',
+    'superadmin@pharmagarde.cm',
+    'super_admin',
+    null,
+    null,
+    'actif',
+    hoursAgo(24 * 365),
+  ])
+  userCount += 1
+  for (const c of cities) {
+    insertUser.run([
+      `Administrateur — ${c.name}`,
+      `admin.${c.slug}@pharmagarde.cm`,
+      'admin',
+      cityIds.get(c.name),
+      null,
+      'actif',
+      hoursAgo(24 * 180),
+    ])
+    userCount += 1
+  }
+  for (const p of pharmacies) {
+    const key = `${p.city}::${p.name}`
+    const accountStatus = suspendedAccounts.has(key)
+      ? 'suspendu'
+      : pendingAccounts.has(key)
+        ? 'en_attente'
+        : 'actif'
+    insertUser.run([
+      `${p.name} (compte professionnel)`,
+      `pharma.${pharmacyIds.get(key)}@pharmagarde.cm`,
+      'pharmacie',
+      null,
+      pharmacyIds.get(key),
+      accountStatus,
+      p.lastUpdated,
+    ])
+    userCount += 1
+  }
+  insertUser.free()
+  console.log(`${userCount} comptes utilisateurs insérés`)
+}
+
+{ // journal d'audit initial
+  const insertAudit = db.prepare(`
+    INSERT INTO audit_log (actor, action, resource, timestamp, metadata)
+    VALUES (?, ?, ?, ?, ?)
+  `)
+  const entries = [
+    [
+      'Super administrateur',
+      'validation_batch',
+      'pharmacies',
+      daysAgo(10),
+      'Validation initiale de 30 pharmacies sur les 10 chefs-lieux',
+    ],
+    [
+      'Administrateur — Yaoundé',
+      'moderation',
+      'report:2',
+      hoursAgo(24),
+      'Signalement classé en_vérification',
+    ],
+  ]
+  for (const entry of entries) insertAudit.run(entry)
+  insertAudit.free()
+}
 
 let scheduleId = 0
 const scheduleByPharmacy = new Map()
@@ -360,17 +466,25 @@ insertConfirmation.free()
 const insertReport = db.prepare(`
   INSERT INTO reports
     (pharmacy_id, author, type, description, status, created_at)
-  VALUES (?, 'Anonyme', 'fermeture', ?, 'en_verification', ?)
+  VALUES (?, ?, 'fermeture', ?, 'en_verification', ?)
 `)
 let reportsCount = 0
 for (const p of pharmacies) {
   if (p.reportedMinutesAgo === undefined) continue
-  reportsCount += 1
-  insertReport.run([
-    pharmacyIds.get(`${p.city}::${p.name}`),
-    `Pharmacie fermée malgré la garde affichée (signalement ${reportsCount}).`,
-    minutesAgo(p.reportedMinutesAgo),
-  ])
+  const key = `${p.city}::${p.name}`
+  // incident critique : deux signalements convergents pour la même garde
+  const extra = key === 'Bafoussam::Pharmacie du Stade' ? 1 : 0
+  for (let k = 0; k <= extra; k += 1) {
+    reportsCount += 1
+    insertReport.run([
+      pharmacyIds.get(key),
+      k === 0 ? 'Anonyme' : 'Awa M. (usager)',
+      k === 0
+        ? `Pharmacie fermée malgré la garde affichée (signalement ${reportsCount}).`
+        : `Fermée depuis plus d'une heure malgré la garde de nuit affichée (signalement ${reportsCount}).`,
+      minutesAgo(p.reportedMinutesAgo - k * 9),
+    ])
+  }
 }
 insertReport.free()
 

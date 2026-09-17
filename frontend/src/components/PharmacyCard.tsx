@@ -15,9 +15,11 @@ export function StatusBadge({ pharmacy }: { pharmacy: Pharmacy }) {
 export default function PharmacyCard({
   pharmacy,
   onDirections,
+  onReport,
 }: {
   pharmacy: Pharmacy
   onDirections: (pharmacy: Pharmacy) => void
+  onReport?: (pharmacy: Pharmacy) => void
 }) {
   const distance = pharmacy.distanceKm ?? pharmacy.cityDistanceKm
   return (
@@ -91,6 +93,7 @@ export default function PharmacyCard({
       </p>
       <button
         type="button"
+        onClick={() => onReport?.(pharmacy)}
         className="mt-2 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-rose-600"
       >
         <FlagIcon /> Signaler une anomalie

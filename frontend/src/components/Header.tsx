@@ -32,7 +32,7 @@ function Logo() {
   )
 }
 
-export default function Header() {
+export default function Header({ onOpenSpace }: { onOpenSpace: () => void }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -53,18 +53,20 @@ export default function Header() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <a
-            href="#"
+          <button
+            type="button"
+            onClick={onOpenSpace}
             className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
           >
             Espace Pharmacie
-          </a>
-          <a
-            href="#"
+          </button>
+          <button
+            type="button"
+            onClick={onOpenSpace}
             className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
           >
             Connexion
-          </a>
+          </button>
         </div>
 
         <button
@@ -120,18 +122,26 @@ export default function Header() {
                 {link.label}
               </a>
             ))}
-            <a
-              href="#"
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                onOpenSpace()
+              }}
               className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
             >
               Espace Pharmacie
-            </a>
-            <a
-              href="#"
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                onOpenSpace()
+              }}
               className="rounded-lg bg-emerald-600 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-emerald-700"
             >
               Connexion
-            </a>
+            </button>
           </nav>
         </div>
       )}
