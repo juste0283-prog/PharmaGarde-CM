@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import {
@@ -48,6 +48,32 @@ function haversineKm(a: Position, b: Position): number {
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2
   return 2 * radiusKm * Math.asin(Math.sqrt(h))
+}
+
+interface RouteResult {
+  coords: [number, number][]
+  distanceKm: number
+  durationMin: number
+}
+
+async function fetchOsrmRoute(origin: Position, destination: Position): Promise<RouteResult> {
+  const url =
+    `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}` +
+    '?overview=full&geometries=geojson&steps=false&alternatives=false'
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`OSRM ${response.status}`)
+  const data = await response.json()
+  if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
+    throw new Error(String(data.code ?? 'no-route'))
+  }
+  const coords: [number, number][] = data.routes[0].geometry.coordinates.map(
+    (pair: number[]): [number, number] => [pair[1], pair[0]],
+  )
+  return {
+    coords,
+    distanceKm: Math.round((data.routes[0].distance / 1000) * 10) / 10,
+    durationMin: Math.max(1, Math.round(data.routes[0].duration / 60)),
+  }
 }
 
 function markerIcon(status: ReliabilityStatus, index: number): L.DivIcon {
@@ -106,6 +132,7 @@ function cityPopupElement(
 function popupHtml(
   pharmacy: Pharmacy,
   routeDistanceKm: number | null,
+  routeInfo: string | null,
   fromCenter: boolean,
 ): string {
   const meta = STATUS_META[pharmacy.status]
@@ -116,7 +143,7 @@ function popupHtml(
       : ''
   const route =
     routeDistanceKm !== null
-      ? `<p class="pg-route-info">Itinéraire — à vol d'oiseau : ${routeDistanceKm.toLocaleString('fr-FR')} km${
+      ? `<p class="pg-route-info">${routeInfo ?? `Itinéraire — à vol d'oiseau : ${routeDistanceKm.toLocaleString('fr-FR')} km`}${
           fromCenter ? ' (depuis le centre-ville)' : ''
         }</p>`
       : ''
@@ -155,6 +182,38 @@ export default function PharmacyMap({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<L.Map | null>(null)
   const markersRef = useRef<L.FeatureGroup | null>(null)
+  const [route, setRoute] = useState<RouteResult | null>(null)
+  const [routeError, setRouteError] = useState(false)
+
+  useEffect(() => {
+    if (routeTarget === null) {
+      setRoute(null)
+      setRouteError(false)
+      return
+    }
+    const origin: Position = position ?? {
+      lat: allCities.find((c) => c.name === routeTarget.city)?.lat ?? routeTarget.latitude,
+      lng: allCities.find((c) => c.name === routeTarget.city)?.lng ?? routeTarget.longitude,
+    }
+    let cancelled = false
+    setRouteError(false)
+    fetchOsrmRoute(origin, {
+      lat: routeTarget.latitude,
+      lng: routeTarget.longitude,
+    })
+      .then((result) => {
+        if (!cancelled) setRoute(result)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRoute(null)
+          setRouteError(true)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [routeTarget, position, allCities])
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -243,7 +302,16 @@ export default function PharmacyMap({
       marker.bindPopup(
         popupHtml(
           pharmacy,
-          routeTarget?.id === pharmacy.id ? routeDistanceKm : null,
+          routeTarget?.id === pharmacy.id
+            ? route?.distanceKm ?? routeDistanceKm
+            : null,
+          routeTarget?.id === pharmacy.id
+            ? route
+              ? `Itinéraire routier — ${route.distanceKm.toLocaleString('fr-FR')} km · ${route.durationMin} min`
+              : routeError
+                ? "Service de routage indisponible — tracé à vol d'oiseau"
+                : null
+            : null,
           routeTarget?.id === pharmacy.id ? fromCenter : false,
         ),
       )
@@ -257,18 +325,43 @@ export default function PharmacyMap({
     })
 
     if (routeTarget !== null) {
-      const origin = position ?? {
+      const origin: Position = {
         lat: allCities.find((c) => c.name === routeTarget.city)?.lat ?? routeTarget.latitude,
         lng: allCities.find((c) => c.name === routeTarget.city)?.lng ?? routeTarget.longitude,
       }
       const destination: L.LatLngTuple = [routeTarget.latitude, routeTarget.longitude]
-      L.polyline(
-        [
-          [origin.lat, origin.lng],
-          destination,
-        ],
-        { color: '#047857', weight: 4, opacity: 0.85, dashArray: '8 8' },
-      ).addTo(group)
+      if (route !== null && route.coords.length > 1) {
+        L.polyline(route.coords, {
+          color: '#047857',
+          weight: 5,
+          opacity: 0.9,
+        }).addTo(group)
+        L.circleMarker(destination, {
+          radius: 7,
+          color: '#047857',
+          weight: 2,
+          fillColor: '#10b981',
+          fillOpacity: 0.9,
+        })
+          .addTo(group)
+          .bindTooltip('Arrivée', { direction: 'top' })
+        map.fitBounds(route.coords, { padding: [60, 60], maxZoom: 16 })
+      } else {
+        L.polyline(
+          [
+            [origin.lat, origin.lng],
+            destination,
+          ],
+          { color: '#047857', weight: 4, opacity: 0.85, dashArray: '8 8' },
+        ).addTo(group)
+        map.fitBounds(
+          [
+            [origin.lat, origin.lng],
+            destination,
+          ],
+          { padding: [60, 60], maxZoom: 16 },
+        )
+      }
       if (position === null) {
         L.circleMarker([origin.lat, origin.lng], {
           radius: 10,
@@ -281,13 +374,6 @@ export default function PharmacyMap({
           .bindTooltip('Centre-ville (départ)', { direction: 'top' })
       }
       targetMarkers.forEach((marker) => marker.openPopup())
-      map.fitBounds(
-        [
-          [origin.lat, origin.lng],
-          destination,
-        ],
-        { padding: [60, 60], maxZoom: 16 },
-      )
     } else if (pharmacies.length > 0) {
       map.fitBounds(group.getBounds(), { padding: [40, 40], maxZoom: 15 })
     } else if (city) {
@@ -295,7 +381,7 @@ export default function PharmacyMap({
     } else {
       map.setView(CAMEROON_CENTER, 6)
     }
-  }, [pharmacies, allCities, quartierPoints, position, routeTarget, city, onDirections, onSelectCity])
+  }, [pharmacies, allCities, quartierPoints, position, routeTarget, route, routeError, city, onDirections, onSelectCity])
 
   return (
     <div
