@@ -127,7 +127,10 @@ export default function AdminSpace({
     latitude: 0,
     longitude: 0,
     verified: isSuper,
+    email: '',
+    password: '',
   })
+  const [newRegion, setNewRegion] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editDraft, setEditDraft] = useState<{
     name: string
@@ -146,10 +149,24 @@ export default function AdminSpace({
     [db, showCreate, newPharmacy.city, city],
   )
 
+  const regions = useMemo(
+    () => Array.from(new Set(data.cities.map((item) => item.region))).sort(),
+    [data.cities],
+  )
+
+  const selectedRegion = isSuper
+    ? newRegion
+    : data.cities.find((item) => item.name === newPharmacy.city)?.region ?? ''
+
+  const regionCities = useMemo(
+    () => data.cities.filter((item) => item.region === selectedRegion),
+    [data.cities, selectedRegion],
+  )
+
   function pickCityCoordinates(nextCity: string) {
     const c = data.cities.find((item) => item.name === nextCity)
     if (!c) return
-    setNewPharmacy((prev) => ({ ...prev, city: nextCity, latitude: c.lat, longitude: c.lng }))
+    setNewPharmacy((prev) => ({ ...prev, city: nextCity, quartier: '', latitude: c.lat, longitude: c.lng }))
   }
 
   const load = useCallback(() => {
@@ -174,9 +191,9 @@ export default function AdminSpace({
     load()
   }, [load])
 
-  function run(actionLabel: string, action: () => void) {
+  async function run(actionLabel: string, action: () => void | Promise<void>) {
     try {
-      action()
+      await action()
       setNotice(actionLabel)
       load()
     } catch (cause) {
@@ -189,8 +206,8 @@ export default function AdminSpace({
       setError('Nom et email sont obligatoires.')
       return
     }
-    run('Compte créé et journalisé.', () => {
-      createUser(
+    run('Compte créé et journalisé.', async () => {
+      await createUser(
         db,
         {
           name: newAccount.name.trim(),
@@ -204,29 +221,49 @@ export default function AdminSpace({
     })
   }
 
-  function handleCreatePharmacy() {
-    if (!newPharmacy.name.trim() || !newPharmacy.quartier.trim()) {
-      setError('Nom et quartier sont obligatoires pour créer une pharmacie.')
+  async function handleCreatePharmacy() {
+    if (!newPharmacy.name.trim() || !newPharmacy.quartier.trim() || !newPharmacy.phone.trim()) {
+      setError('Nom, quartier et téléphone sont obligatoires pour créer une pharmacie.')
       return
     }
-    const result = createPharmacy(db, newPharmacy, label)
+    if (!newPharmacy.city) {
+      setError('La région et la ville sont obligatoires : choisissez la région, puis la ville.')
+      return
+    }
+    const email = newPharmacy.email?.trim() ?? ''
+    const password = newPharmacy.password ?? ''
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Adresse email invalide pour le compte de la pharmacie.')
+      return
+    }
+    if (password && password.length < 8) {
+      setError('Le mot de passe du compte doit contenir au moins 8 caractères.')
+      return
+    }
+    const result = await createPharmacy(db, newPharmacy, label)
     if (!result.ok) {
       setError(result.error ?? 'Création impossible.')
       return
     }
+    const resetCity = city ?? ''
     setNewPharmacy({
       name: '',
-      city: city ?? '',
+      city: resetCity,
       quartier: '',
       address: '',
       phone: '',
       latitude: 0,
       longitude: 0,
       verified: isSuper,
+      email: '',
+      password: '',
     })
+    setNewRegion(isSuper ? '' : selectedRegion)
     setShowCreate(false)
     setNotice(
-      `Pharmacie créée (${newPharmacy.quartier}, ${newPharmacy.city}) avec planning initialisé et compte professionnel.`,
+      `Pharmacie créée dans le quartier ${newPharmacy.quartier} (${newPharmacy.city} — ${selectedRegion}), ` +
+        `planning initialisé. Identifiants du compte : ${result.accountEmail} / ${result.accountPassword ?? '(mot de passe par défaut)'}. ` +
+        'Le pharmacien se connecte avec ces identifiants depuis « Connexion professionnelle ».',
     )
     load()
   }
@@ -400,7 +437,7 @@ export default function AdminSpace({
         <div className="space-y-5">
           <SectionTitle
             title="Validation des pharmacies & comptes"
-            subtitle={`${data.pharmacies.length} pharmacies — création et mise à jour par la supervision, quartier et coordonnées GPS inclus.`}
+            subtitle={`${data.pharmacies.length} pharmacies — création et mise à jour par la supervision : région, quartier et coordonnées GPS inclus.`}
             chip={
               <span className="flex flex-wrap items-center gap-2">
                 {scopeChip}
@@ -418,8 +455,9 @@ export default function AdminSpace({
             <div className="rounded-2xl border border-violet-200 bg-white p-5 shadow-sm">
               <p className="text-sm font-bold text-slate-900">Nouvelle pharmacie</p>
               <p className="mt-0.5 text-xs text-slate-500">
-                Le quartier pilote le filtre de l’accueil ; les coordonnées GPS placent la pharmacie sur la carte.
-                Un compte professionnel et un planning (7 jours) sont créés automatiquement.
+                La région et le quartier (choisi parmi ceux de la ville) localisent la pharmacie ; les
+                coordonnées GPS la placent sur la carte. L’email et le mot de passe sont les
+                identifiants de connexion du pharmacien.
               </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <label className="block">
@@ -433,36 +471,75 @@ export default function AdminSpace({
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-semibold text-slate-600">Ville</span>
+                  <span className="text-xs font-semibold text-slate-600">Région *</span>
+                  <select
+                    id="np-region"
+                    value={selectedRegion}
+                    onChange={(event) => {
+                      const next = event.target.value
+                      setNewRegion(next)
+                      setNewPharmacy((prev) => ({ ...prev, city: '', quartier: '', latitude: 0, longitude: 0 }))
+                    }}
+                    disabled={!isSuper}
+                    className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-slate-100`}
+                  >
+                    {!isSuper ? (
+                      <option value={selectedRegion}>{selectedRegion || 'Région de la zone assignée'}</option>
+                    ) : (
+                      <>
+                        <option value="">Choisir une région…</option>
+                        {regions.map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold text-slate-600">Ville *</span>
                   <select
                     id="np-city"
                     value={newPharmacy.city}
                     onChange={(event) => pickCityCoordinates(event.target.value)}
-                    disabled={!isSuper}
+                    disabled={!isSuper || !selectedRegion}
                     className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-slate-100`}
                   >
-                    {data.cities.map((c) => (
-                      <option key={c.name} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
+                    {!isSuper ? (
+                      <option value={newPharmacy.city}>{newPharmacy.city}</option>
+                    ) : (
+                      <>
+                        <option value="">
+                          {selectedRegion ? 'Choisir une ville…' : 'Choisissez d’abord une région'}
+                        </option>
+                        {regionCities.map((c) => (
+                          <option key={c.name} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </>
+                    )}
                   </select>
                 </label>
                 <label className="block">
                   <span className="text-xs font-semibold text-slate-600">Quartier *</span>
-                  <input
+                  <select
                     id="np-quartier"
                     value={newPharmacy.quartier}
                     onChange={(event) => setNewPharmacy((prev) => ({ ...prev, quartier: event.target.value }))}
-                    list="admin-quartiers"
-                    placeholder="Centre-ville"
-                    className={fieldClass}
-                  />
-                  <datalist id="admin-quartiers">
+                    disabled={!newPharmacy.city}
+                    className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-slate-100`}
+                  >
+                    <option value="">
+                      {newPharmacy.city ? 'Choisir un quartier…' : 'Choisissez d’abord une ville'}
+                    </option>
                     {existingQuartiers.map((q) => (
-                      <option key={q} value={q} />
+                      <option key={q} value={q}>
+                        {q}
+                      </option>
                     ))}
-                  </datalist>
+                  </select>
                 </label>
                 <label className="block">
                   <span className="text-xs font-semibold text-slate-600">Téléphone *</span>
@@ -481,6 +558,28 @@ export default function AdminSpace({
                     value={newPharmacy.address}
                     onChange={(event) => setNewPharmacy((prev) => ({ ...prev, address: event.target.value }))}
                     placeholder="Rue du Marché, à côté de la Mairie"
+                    className={fieldClass}
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold text-slate-600">Email du compte</span>
+                  <input
+                    id="np-email"
+                    type="email"
+                    value={newPharmacy.email ?? ''}
+                    onChange={(event) => setNewPharmacy((prev) => ({ ...prev, email: event.target.value }))}
+                    placeholder="pharma@exemple.cm (automatique si vide)"
+                    className={fieldClass}
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold text-slate-600">Mot de passe</span>
+                  <input
+                    id="np-password"
+                    type="password"
+                    value={newPharmacy.password ?? ''}
+                    onChange={(event) => setNewPharmacy((prev) => ({ ...prev, password: event.target.value }))}
+                    placeholder="8 caractères min."
                     className={fieldClass}
                   />
                 </label>
@@ -571,7 +670,8 @@ export default function AdminSpace({
                         </span>
                       </div>
                       <p className="mt-1 text-xs text-slate-500">
-                        {pharmacy.city} · {pharmacy.address || 'Adresse à préciser'} · {pharmacy.phone} · Source : {pharmacy.source}
+                        {pharmacy.city} ({pharmacy.region}) · {pharmacy.address || 'Adresse à préciser'} ·{' '}
+                        {pharmacy.phone} · Source : {pharmacy.source}
                       </p>
                       <p className="mt-0.5 font-mono text-xs text-slate-400">
                         {pharmacy.latitude.toFixed(5)}, {pharmacy.longitude.toFixed(5)}

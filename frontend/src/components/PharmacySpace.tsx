@@ -549,18 +549,18 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
                   </div>
                   <div>
                     <label htmlFor="pro-quartier" className="mb-1 block text-xs font-semibold text-slate-600">Quartier</label>
-                    <input
+                    <select
                       id="pro-quartier"
-                      list="pharmacy-city-quartiers"
                       value={quartierDraft}
                       onChange={(event) => setQuartierDraft(event.target.value)}
                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                    />
-                    <datalist id="pharmacy-city-quartiers">
+                    >
                       {cityQuartiers.map((q) => (
-                        <option key={q} value={q} />
+                        <option key={q} value={q}>
+                          {q}
+                        </option>
                       ))}
-                    </datalist>
+                    </select>
                   </div>
                   <div>
                     <label htmlFor="pro-address" className="mb-1 block text-xs font-semibold text-slate-600">Adresse</label>

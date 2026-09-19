@@ -1,5 +1,6 @@
 import initSqlJs from 'sql.js'
 import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -17,6 +18,9 @@ const ADMIN_SOURCE =
   'Planning national des gardes — vérifié par l\u2019administration'
 const MUNICIPAL_SOURCE = 'Planning municipal de garde'
 
+const DEMO_PASSWORD = 'PharmaGarde2026'
+const hashPassword = (value) => createHash('sha256').update(value).digest('hex')
+
 const cities = [
   { name: 'Yaoundé', slug: 'yaounde', region: 'Centre', lat: 3.8667, lng: 11.5167, pilot: true },
   { name: 'Douala', slug: 'douala', region: 'Littoral', lat: 4.0505, lng: 9.6991, pilot: true },
@@ -29,6 +33,19 @@ const cities = [
   { name: 'Maroua', slug: 'maroua', region: 'Extrême-Nord', lat: 10.5915, lng: 14.3157 },
   { name: 'Ngaoundéré', slug: 'ngaoundere', region: 'Adamaoua', lat: 7.3211, lng: 13.5846 },
 ]
+
+const quartiersByCity = {
+  Yaoundé: ['Centre-ville', 'Bastos', 'Biyem-Assi', 'Mfandena', 'Nlongkak'],
+  Douala: ['Akwa', 'Bonapriso', 'Bali', 'Bonanjo', 'Deïdo'],
+  Bafoussam: ['Banengo', 'Centre-ville', 'Tchimendem', 'Kamkop'],
+  Bamenda: ['Nkwen', 'Old Town', 'Mbatu', 'Ntarikon'],
+  Bertoua: ['Mandjou', 'Chantier', 'Tibati', 'Petit Paris'],
+  Buéa: ['Molyko', 'Small Soppo', 'Buea Town', 'Mile 17'],
+  Ebolowa: ['Ngoazip', 'Melen', 'Centre-ville', 'Ebolowa I'],
+  Garoua: ['Boki', 'Doualare', 'Centre-ville', 'Poli'],
+  Maroua: ['Dougoui', 'Pitoaré', 'Yelwa', 'Domayo'],
+  Ngaoundéré: ['Baladji', 'Dang', 'Malang', 'Sissong'],
+}
 
 const pilots = [
   {
@@ -235,6 +252,13 @@ db.run(`
     is_pilot INTEGER NOT NULL DEFAULT 0
   );
 
+  CREATE TABLE quartiers (
+    id INTEGER PRIMARY KEY,
+    city_id INTEGER NOT NULL REFERENCES cities(id),
+    name TEXT NOT NULL,
+    UNIQUE (city_id, name)
+  );
+
   CREATE TABLE pharmacies (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
@@ -289,6 +313,7 @@ db.run(`
     city_id INTEGER REFERENCES cities(id),
     pharmacy_id INTEGER REFERENCES pharmacies(id),
     status TEXT NOT NULL DEFAULT 'actif',
+    password TEXT NOT NULL,
     created_at TEXT NOT NULL
   );
 
@@ -322,6 +347,19 @@ for (const c of cities) {
 }
 insertCity.free()
 
+const insertQuartier = db.prepare(`
+  INSERT INTO quartiers (city_id, name)
+  VALUES (?, ?)
+`)
+let quartierCount = 0
+for (const c of cities) {
+  for (const quartier of quartiersByCity[c.name] ?? []) {
+    insertQuartier.run([cityIds.get(c.name), quartier])
+    quartierCount += 1
+  }
+}
+insertQuartier.free()
+
 const pharmacyIds = new Map()
 const insertPharmacy = db.prepare(`
   INSERT INTO pharmacies
@@ -350,8 +388,8 @@ insertPharmacy.free()
 
 { // comptes utilisateurs : super admin, un administrateur par ville, un compte par pharmacie
   const insertUser = db.prepare(`
-    INSERT INTO users (name, email, role, city_id, pharmacy_id, status, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO users (name, email, role, city_id, pharmacy_id, status, password, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `)
   let userCount = 0
   insertUser.run([
@@ -361,6 +399,7 @@ insertPharmacy.free()
     null,
     null,
     'actif',
+    hashPassword(DEMO_PASSWORD),
     hoursAgo(24 * 365),
   ])
   userCount += 1
@@ -372,6 +411,7 @@ insertPharmacy.free()
       cityIds.get(c.name),
       null,
       'actif',
+      hashPassword(DEMO_PASSWORD),
       hoursAgo(24 * 180),
     ])
     userCount += 1
@@ -390,6 +430,7 @@ insertPharmacy.free()
       null,
       pharmacyIds.get(key),
       accountStatus,
+      hashPassword(DEMO_PASSWORD),
       p.lastUpdated,
     ])
     userCount += 1
@@ -491,7 +532,7 @@ insertReport.free()
 mkdirSync(dbDir, { recursive: true })
 writeFileSync(dbPath, Buffer.from(db.export()))
 console.log(
-  `pharmagarde.db générée : ${dbPath} (${cities.length} villes, ${pharmacies.length} pharmacies, ${confirmationsCount} confirmations, ${reportsCount} signalements)`,
+  `pharmagarde.db générée : ${dbPath} (${cities.length} villes, ${quartierCount} quartiers, ${pharmacies.length} pharmacies, ${confirmationsCount} confirmations, ${reportsCount} signalements)`,
 )
 
 const wasmSrc = join(projectDir, 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm')
