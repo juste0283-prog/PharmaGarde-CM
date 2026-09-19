@@ -1,6 +1,11 @@
 import initSqlJs from 'sql.js'
 import type { Database, SqlValue } from 'sql.js'
-import { DEMO_PASSWORD, hashPassword } from './passwords'
+import {
+  DEMO_PASSWORD,
+  SUPER_ADMIN_PASSWORD,
+  SUPER_ADMIN_USERNAME,
+  hashPassword,
+} from './passwords'
 
 let dbPromise: Promise<Database> | null = null
 
@@ -38,6 +43,7 @@ async function migrate(db: Database): Promise<Database> {
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL,
+      username TEXT,
       email TEXT NOT NULL UNIQUE,
       role TEXT NOT NULL,
       city_id INTEGER REFERENCES cities(id),
@@ -54,6 +60,11 @@ async function migrate(db: Database): Promise<Database> {
       metadata TEXT
     );
   `)
+  try {
+    db.run('ALTER TABLE users ADD COLUMN username TEXT')
+  } catch {
+    // colonne déjà présente
+  }
   db.run(`
     CREATE TABLE IF NOT EXISTS quartiers (
       id INTEGER PRIMARY KEY,
@@ -104,7 +115,64 @@ async function migrate(db: Database): Promise<Database> {
     const defaultHash = await hashPassword(DEMO_PASSWORD)
     db.run(`UPDATE users SET password = ? WHERE password IS NULL OR password = ''`, [defaultHash])
   }
+  const usedUsernames = new Set(
+    execAll(db, `SELECT username FROM users WHERE username IS NOT NULL AND username <> ''`).map(
+      (row) => String(row.username),
+    ),
+  )
+  const withoutUsername = execAll(
+    db,
+    `SELECT u.id, u.role, c.slug AS city_slug, p.name AS pharmacy_name
+     FROM users u
+     LEFT JOIN cities c ON c.id = u.city_id
+     LEFT JOIN pharmacies p ON p.id = u.pharmacy_id
+     WHERE u.username IS NULL OR u.username = ''`,
+  )
+  for (const row of withoutUsername) {
+    const base =
+      row.role === 'super_admin'
+        ? SUPER_ADMIN_USERNAME
+        : row.role === 'admin'
+          ? `admin.${row.city_slug ?? 'ville'}`
+          : slugify(String(row.pharmacy_name ?? 'pharmacie'))
+    let username = base
+    let suffix = 2
+    while (usedUsernames.has(username)) {
+      username = `${base}-${suffix}`
+      suffix += 1
+    }
+    usedUsernames.add(username)
+    db.run(`UPDATE users SET username = ? WHERE id = ?`, [username, Number(row.id)])
+  }
+  db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)`)
+
+  const superRow = execFirst(
+    db,
+    `SELECT id, password FROM users WHERE username = ? LIMIT 1`,
+    [SUPER_ADMIN_USERNAME],
+  )
+  if (superRow) {
+    const oldDefaultHash = await hashPassword(DEMO_PASSWORD)
+    const currentHash = String(superRow.password ?? '')
+    if (!currentHash || currentHash === oldDefaultHash) {
+      db.run('UPDATE users SET password = ? WHERE id = ?', [
+        await hashPassword(SUPER_ADMIN_PASSWORD),
+        Number(superRow.id),
+      ])
+    }
+  }
   return db
+}
+
+function slugify(value: string): string {
+  return (
+    String(value)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'compte'
+  )
 }
 
 export async function getDb(): Promise<Database> {

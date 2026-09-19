@@ -178,6 +178,7 @@ export const ACCOUNT_STATUS_LABELS: Record<AccountStatus, string> = {
 export interface UserAccount {
   id: number
   name: string
+  username: string
   email: string
   role: BackOfficeRole
   city: string | null

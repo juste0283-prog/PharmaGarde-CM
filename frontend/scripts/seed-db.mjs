@@ -19,7 +19,17 @@ const ADMIN_SOURCE =
 const MUNICIPAL_SOURCE = 'Planning municipal de garde'
 
 const DEMO_PASSWORD = 'PharmaGarde2026'
+const SUPER_ADMIN_USERNAME = 'pharmasuperadmin'
+const SUPER_ADMIN_PASSWORD = 'pharmaadmin@2026'
 const hashPassword = (value) => createHash('sha256').update(value).digest('hex')
+
+const slugify = (value) =>
+  String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'compte'
 
 const cities = [
   { name: 'Yaoundé', slug: 'yaounde', region: 'Centre', lat: 3.8667, lng: 11.5167, pilot: true },
@@ -297,7 +307,7 @@ const generated = [
       { name: 'Dang', dLat: 0.006, dLng: 0.013 },
       { name: 'Malang', dLat: 0.021, dLng: -0.012 },
     ],
-    names: ['Pharmacie du Plateau', 'Pharmacie Malang', 'Pharmacie de la Gare'],
+    names: ['Pharmacie du Plateau', 'Pharmacie Malang', 'Pharmacie de la Gare Centrale'],
   },
 ]
 
@@ -409,6 +419,7 @@ db.run(`
   CREATE TABLE users (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
+    username TEXT NOT NULL UNIQUE,
     email TEXT NOT NULL UNIQUE,
     role TEXT NOT NULL,
     city_id INTEGER REFERENCES cities(id),
@@ -489,24 +500,37 @@ insertPharmacy.free()
 
 { // comptes utilisateurs : super admin, un administrateur par ville, un compte par pharmacie
   const insertUser = db.prepare(`
-    INSERT INTO users (name, email, role, city_id, pharmacy_id, status, password, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO users (name, username, email, role, city_id, pharmacy_id, status, password, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   let userCount = 0
+  const usedUsernames = new Set([SUPER_ADMIN_USERNAME])
+  const uniqueUsername = (base) => {
+    let candidate = base
+    let suffix = 2
+    while (usedUsernames.has(candidate)) {
+      candidate = `${base}-${suffix}`
+      suffix += 1
+    }
+    usedUsernames.add(candidate)
+    return candidate
+  }
   insertUser.run([
     'Super administrateur — Direction générale',
+    SUPER_ADMIN_USERNAME,
     'superadmin@pharmagarde.cm',
     'super_admin',
     null,
     null,
     'actif',
-    hashPassword(DEMO_PASSWORD),
+    hashPassword(SUPER_ADMIN_PASSWORD),
     hoursAgo(24 * 365),
   ])
   userCount += 1
   for (const c of cities) {
     insertUser.run([
       `Administrateur — ${c.name}`,
+      uniqueUsername(`admin.${c.slug}`),
       `admin.${c.slug}@pharmagarde.cm`,
       'admin',
       cityIds.get(c.name),
@@ -526,6 +550,7 @@ insertPharmacy.free()
         : 'actif'
     insertUser.run([
       `${p.name} (compte professionnel)`,
+      uniqueUsername(slugify(p.name)),
       `pharma.${pharmacyIds.get(key)}@pharmagarde.cm`,
       'pharmacie',
       null,

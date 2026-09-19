@@ -44,12 +44,20 @@ itinéraire et signalement des incohérences.
     paramètres & sécurité, journal d'audit, arbitrage des signalements. Il **crée et gère les
     pharmacies** (nom, ville, **quartier**, adresse, téléphone, **coordonnées GPS**) : un compte
     professionnel et un planning de 7 jours sont créés automatiquement, puis **chaque pharmacie
-    apparaît dynamiquement sur l'accueil** (liste, filtres par quartier, carte).
+    apparaît dynamiquement sur l'accueil** (liste, filtres par quartier, carte). Il **crée aussi
+    les comptes administrateurs et super administrateurs** (nom, email, rôle, zone) en leur
+    choisissant un **mot de passe** (ou en utilisant le mot de passe par défaut).
 
   Interface professionnelle (sidebar de navigation, tableaux de bord, badges de statut), connexion
-  en mode démonstration sans mot de passe, session persistante entre les visites et
-  journalisation de toutes les actions dans le journal d'audit. Le **quartier** est systématiquement
-  mis en avant (badges dans le back-office, datalist de choix, filtres dynamiques de l'accueil).
+  par **nom d'utilisateur et mot de passe** (chaque compte a son identifiant), session persistante
+  entre les visites et journalisation de toutes les actions dans le journal d'audit. Le
+  **quartier** est systématiquement mis en avant (badges dans le back-office, datalist de choix,
+  filtres dynamiques de l'accueil).
+
+  > Identifiants de démonstration : super administrateur `pharmasuperadmin` / `pharmaadmin@2026` ;
+  > administrateurs et pharmacies : mot de passe `PharmaGarde2026` par défaut (lisible dans
+  > `frontend/src/db/passwords.ts`). Le nom d'utilisateur des administrateurs suit le modèle
+  > `admin.<ville>` (ex. `admin.yaounde`) et celui des pharmacies est dérivé du nom (slug).
 
 ---
 
@@ -84,6 +92,7 @@ PharmaGarde_CM/
 │       │                         # AdminSpace, Reliability, HowItWorks, ReportCta, Footer
 │       ├── data/pharmacies.ts    # Types (City, PharmPoint, roles/statuts/audit) et constantes
 │       ├── db/database.ts        # Chargement SQLite + WASM + migrations (users, audit_log)
+│       ├── db/passwords.ts       # Hachage SHA-256 et identifiants de démonstration
 │       ├── db/queries.ts         # Requêtes (villes, pharmacies, plannings, back-office)
 │       └── hooks/usePharmacyData.ts
 ├── backend/                 # API Node/Express (squelette en cours de construction)
@@ -138,24 +147,26 @@ Schéma SQLite (fichier `frontend/public/db/pharmagarde.db`) :
 | Table           | Rôle                                              |
 |-----------------|---------------------------------------------------|
 | `cities`        | Villes couvertes (chefs-lieux de région), coordonnées |
+| `quartiers`     | Quartiers officiels de chaque ville (473 au total) |
 | `pharmacies`    | Nom, ville, quartier, adresse, téléphone, coordonnées, source |
 | `duty_schedules`| Horaires de garde (début/fin) par pharmacie        |
 | `confirmations` | Confirmations communautaires de la disponibilité   |
 | `reports`       | Signalements d'incohérence (fermée, occupée…) + réponse et modération |
-| `users`         | Comptes du back-office (pharmacie, admin, super admin) et statut (actif/en_attente/suspendu) |
+| `users`         | Comptes du back-office (username, pharmacie, admin, super admin) et statut (actif/en_attente/suspendu) |
 | `audit_log`     | Journal d'audit (connexions et actions administrateur) |
 
 Par défaut, le jeu de données seed contient :
 
 - **10 villes** (chefs-lieux des 10 régions du Cameroun : Yaoundé, Douala, Bafoussam, Bamenda,
-  Bertoua, Buea, Ebolowa, Garoua, Maroua, Ngaoundéré) ;
-- **30 pharmacies** réparties entre les villes (dont doublons possibles entre villes, gérés par une
-  clé composée `ville::nom`) ;
+  Bertoua, Buea, Ebolowa, Garoua, Maroua, Ngaoundéré), couvrant **473 quartiers** (les filtres de
+  l'accueil proposent l'ensemble des quartiers de la ville sélectionnée) ;
+- **30 pharmacies** réparties entre les villes (clé composée `ville::nom` pour tolérer une même
+  enseigne dans plusieurs villes, les noms restant uniques dans une ville donnée) ;
 - **210 plannings de garde**, **30 confirmations**, **4 signalements** ;
-- **41 comptes back-office** : 1 super administrateur, 1 administrateur par ville, 1 compte par
-  pharmacie (dont 2 comptes en attente — Bertoua, Garoua — et 1 suspendu — Douala) ;
-- les **points de quartier** sont dérivés en requête (coordonnées moyennes des pharmacies d'un même
-  quartier).
+- **41 comptes back-office** : 1 super administrateur (`pharmasuperadmin`), 1 administrateur par
+  ville (`admin.<ville>`), 1 compte par pharmacie (slug du nom) — dont 2 comptes en attente
+  (Bertoua, Garoua) et 1 suspendu (Douala) ; les points de quartier sont fournis par la table
+  `quartiers`.
 
 ---
 

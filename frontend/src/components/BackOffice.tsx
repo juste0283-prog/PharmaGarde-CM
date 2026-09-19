@@ -4,17 +4,16 @@ import { BACKOFFICE_SESSION_KEY, getDb } from '../db/database'
 import {
   authenticateUser,
   getAdminForCity,
-  getCities,
   getSuperAdmin,
   getUserByPharmacy,
   logAudit,
 } from '../db/queries'
+import { SUPER_ADMIN_USERNAME } from '../db/passwords'
 import {
   ROLE_LABELS,
   ROLE_PERIMETERS,
   type BackOfficeRole,
   type BackOfficeSession,
-  type City,
   type UserAccount,
 } from '../data/pharmacies'
 import PharmacySpace from './PharmacySpace'
@@ -44,47 +43,34 @@ interface LoginViewProps {
 
 function LoginView({ db, onLoggedIn, onExit }: LoginViewProps) {
   const [tab, setTab] = useState<RoleTab>('pharmacie')
-  const [cities, setCities] = useState<City[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  const [pharmacyEmail, setPharmacyEmail] = useState('')
-  const [pharmacyPassword, setPharmacyPassword] = useState('')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
 
-  const [adminCity, setAdminCity] = useState('')
-
-  useEffect(() => {
-    setCities(getCities(db))
-  }, [db])
+  const fieldClass =
+    'w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100'
 
   async function handleSubmit() {
     setError(null)
+    const name = username.trim()
+    if (!name || !password) {
+      setError('Saisissez votre nom d’utilisateur et votre mot de passe.')
+      return
+    }
     setBusy(true)
-    const label =
-      tab === 'pharmacie'
-        ? 'Pharmacie'
-        : tab === 'admin'
-          ? adminCity
-          : 'Super administrateur'
-
-    let account: UserAccount | null = null
-    let session: BackOfficeSession | null = null
-
     try {
+      const account = await authenticateUser(db, name, password)
+      if (!account) {
+        setError('Identifiants incorrects : nom d’utilisateur ou mot de passe inconnu.')
+        return
+      }
+
+      let session: BackOfficeSession | null = null
       if (tab === 'pharmacie') {
-        const email = pharmacyEmail.trim()
-        const password = pharmacyPassword
-        if (!email || !password) {
-          setError('Saisissez votre email et votre mot de passe.')
-          return
-        }
-        account = await authenticateUser(db, email, password)
-        if (!account) {
-          setError('Identifiants incorrects : email ou mot de passe inconnu.')
-          return
-        }
         if (account.role !== 'pharmacie' || account.pharmacyId === null) {
-          setError('Ce compte n’est pas un compte pharmacie. Utilisez l’espace Administrateur.')
+          setError('Ce compte n’est pas un compte pharmacie. Utilisez l’onglet Administrateur.')
           return
         }
         if (account.status === 'suspendu') {
@@ -103,27 +89,25 @@ function LoginView({ db, onLoggedIn, onExit }: LoginViewProps) {
           pharmacyId: account.pharmacyId,
         }
       } else if (tab === 'admin') {
-        if (!adminCity) {
-          setError('Choisissez d’abord votre ville / zone de responsabilité.')
+        if (account.role !== 'admin') {
+          setError('Ce compte n’est pas un compte administrateur. Utilisez un autre onglet.')
           return
         }
-        account = getAdminForCity(db, adminCity)
-        if (!account) {
-          setError('Aucun compte administrateur actif pour cette ville.')
+        if (!account.city) {
+          setError('Ce compte administrateur n’est rattaché à aucune ville / zone.')
           return
         }
-        session = { role: 'admin', label: account.name, userId: account.id, city: adminCity, pharmacyId: null }
+        session = { role: 'admin', label: account.name, userId: account.id, city: account.city, pharmacyId: null }
       } else {
-        account = getSuperAdmin(db)
-        if (!account) {
-          setError('Compte super administrateur introuvable.')
+        if (account.role !== 'super_admin') {
+          setError('Ce compte n’est pas le super administrateur. Utilisez un autre onglet.')
           return
         }
         session = { role: 'super_admin', label: account.name, userId: account.id, city: null, pharmacyId: null }
       }
 
       try {
-        logAudit(db, account?.name ?? label, 'login', 'session', session.role)
+        logAudit(db, account.name, 'login', 'session', session.role)
       } catch {
         // l'audit ne doit pas bloquer la connexion
       }
@@ -157,17 +141,26 @@ function LoginView({ db, onLoggedIn, onExit }: LoginViewProps) {
 
       <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
         <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-800">
-          <strong>Mode démonstration locale.</strong> Le pharmacien se connecte avec l’email et le
-          mot de passe attribués par l’administration (comptes de démo : mot de passe{' '}
-          <code className="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs">PharmaGarde2026</code>).
-          Les actions sont enregistrées dans votre navigateur (base web SQLite) et journalisées.
+          <strong>Mode démonstration locale.</strong> Chaque compte se connecte avec son{' '}
+          <em>nom d’utilisateur</em> et son <em>mot de passe</em>. Comptes de démo : mot de passe{' '}
+          <code className="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs">PharmaGarde2026</code>{' '}
+          pour les administrateurs et les pharmacies ; le super administrateur utilise{' '}
+          <code className="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs">
+            pharmasuperadmin
+          </code>{' '}
+          /{' '}
+          <code className="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs">
+            pharmaadmin@2026
+          </code>
+          . Les actions sont enregistrées dans votre navigateur (base web SQLite) et journalisées.
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <h1 className="text-xl font-bold text-slate-900">Connexion professionnelle</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Sélectionnez votre rôle. Chaque espace respecte le périmètre et les responsabilités du
-            cahier des charges.
+            Sélectionnez votre rôle, puis authentifiez-vous avec votre nom d’utilisateur et votre mot
+            de passe. Chaque espace respecte le périmètre et les responsabilités du cahier des
+            charges.
           </p>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -193,79 +186,48 @@ function LoginView({ db, onLoggedIn, onExit }: LoginViewProps) {
           </div>
 
           <div className="mt-6 space-y-4">
-            {tab === 'pharmacie' && (
-              <>
-                <div>
-                  <label htmlFor="bo-email" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                    Email du compte pharmacie
-                  </label>
-                  <input
-                    id="bo-email"
-                    type="email"
-                    autoComplete="email"
-                    value={pharmacyEmail}
-                    onChange={(event) => setPharmacyEmail(event.target.value)}
-                    placeholder="pharmacie@pharmagarde.cm"
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                  />
-                  <p className="mt-1 text-xs text-slate-500">
-                    L’email du compte a été attribué par l’administration à la création de la pharmacie.
-                  </p>
-                </div>
-                <div>
-                  <label htmlFor="bo-password" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                    Mot de passe
-                  </label>
-                  <input
-                    id="bo-password"
-                    type="password"
-                    autoComplete="current-password"
-                    value={pharmacyPassword}
-                    onChange={(event) => setPharmacyPassword(event.target.value)}
-                    placeholder="••••••••"
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                  />
-                </div>
-              </>
-            )}
-
-            {tab === 'admin' && (
-              <div>
-                <label htmlFor="bo-zone" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  Ville / zone assignée
-                </label>
-                <select
-                  id="bo-zone"
-                  value={adminCity}
-                  onChange={(event) => {
-                    setAdminCity(event.target.value)
-                    setError(null)
-                  }}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                >
-                  <option value="">Choisir votre zone…</option>
-                  {cities.map((city) => (
-                    <option key={city.name} value={city.name}>
-                      {city.name} — {city.region}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {tab === 'super_admin' && (
-              <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-                Accès complet à la plateforme : toutes les villes, rôles, paramètres, journal
-                d’audit et arbitrage des signalements.
+            <div>
+              <label htmlFor="bo-username" className="mb-1.5 block text-sm font-semibold text-slate-700">
+                Nom d’utilisateur
+              </label>
+              <input
+                id="bo-username"
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder={tab === 'super_admin' ? 'pharmasuperadmin' : tab === 'admin' ? 'admin.yaounde' : 'votre nom d’utilisateur'}
+                className={fieldClass}
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                {tab === 'super_admin'
+                  ? `Compte réservé : nom d’utilisateur ${SUPER_ADMIN_USERNAME}.`
+                  : tab === 'admin'
+                    ? 'Nom d’utilisateur attribué par le super administrateur (ex. admin.yaounde).'
+                    : 'Le nom d’utilisateur du compte a été attribué à la création de la pharmacie.'}
               </p>
-            )}
+            </div>
+            <div>
+              <label htmlFor="bo-password" className="mb-1.5 block text-sm font-semibold text-slate-700">
+                Mot de passe
+              </label>
+              <input
+                id="bo-password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="••••••••"
+                className={fieldClass}
+              />
+            </div>
 
             {error && <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
 
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={busy || (tab === 'pharmacie' && (!pharmacyEmail.trim() || !pharmacyPassword))}
+              disabled={busy || !username.trim() || !password}
               className="w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               {busy ? 'Connexion…' : `Entrer dans « ${ROLE_LABELS[tab]} »`}

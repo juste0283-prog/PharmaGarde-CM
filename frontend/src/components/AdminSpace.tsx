@@ -18,11 +18,12 @@ import {
   updatePharmacyFull,
   updateUserRole,
 } from '../db/queries'
+import { DEMO_PASSWORD } from '../db/passwords'
 import {
   ACCOUNT_STATUS_LABELS,
   ACTION_LABELS,
-  REPORT_STATUS_LABELS,
   REPORT_TYPE_LABELS,
+  REPORT_STATUS_LABELS,
   ROLE_LABELS,
   ROLE_PERIMETERS,
   WEEKDAYS,
@@ -115,7 +116,13 @@ export default function AdminSpace({
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [reportFilter, setReportFilter] = useState('')
-  const [newAccount, setNewAccount] = useState({ name: '', email: '', role: 'admin' as BackOfficeRole, city: '' })
+  const [newAccount, setNewAccount] = useState({
+    name: '',
+    email: '',
+    role: 'admin' as BackOfficeRole,
+    city: '',
+    password: '',
+  })
 
   const [showCreate, setShowCreate] = useState(false)
   const [newPharmacy, setNewPharmacy] = useState<NewPharmacyInput>({
@@ -201,24 +208,38 @@ export default function AdminSpace({
     }
   }
 
-  function handleCreateAccount() {
+  async function handleCreateAccount() {
     if (newAccount.name.trim() === '' || newAccount.email.trim() === '') {
       setError('Nom et email sont obligatoires.')
       return
     }
-    run('Compte créé et journalisé.', async () => {
-      await createUser(
+    const password = newAccount.password ?? ''
+    if (password && password.length < 8) {
+      setError('Le mot de passe doit contenir au moins 8 caractères.')
+      return
+    }
+    try {
+      const account = await createUser(
         db,
         {
           name: newAccount.name.trim(),
           email: newAccount.email.trim(),
           role: newAccount.role,
           city: newAccount.city || null,
+          password: password || undefined,
         },
         label,
       )
-      setNewAccount({ name: '', email: '', role: 'admin', city: '' })
-    })
+      setNewAccount({ name: '', email: '', role: 'admin', city: '', password: '' })
+      setNotice(
+        password
+          ? `Compte créé : nom d’utilisateur ${account?.username ?? '—'} / mot de passe choisi.`
+          : `Compte créé : nom d’utilisateur ${account?.username ?? '—'} / mot de passe par défaut (${DEMO_PASSWORD}).`,
+      )
+      load()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'La création du compte a échoué.')
+    }
   }
 
   async function handleCreatePharmacy() {
@@ -262,7 +283,8 @@ export default function AdminSpace({
     setShowCreate(false)
     setNotice(
       `Pharmacie créée dans le quartier ${newPharmacy.quartier} (${newPharmacy.city} — ${selectedRegion}), ` +
-        `planning initialisé. Identifiants du compte : ${result.accountEmail} / ${result.accountPassword ?? '(mot de passe par défaut)'}. ` +
+        `planning initialisé. Identifiants du compte : nom d’utilisateur ${result.accountUsername ?? '—'} / ` +
+        `${result.accountPassword ? 'mot de passe saisi' : `mot de passe par défaut (${DEMO_PASSWORD})`}. ` +
         'Le pharmacien se connecte avec ces identifiants depuis « Connexion professionnelle ».',
     )
     load()
@@ -456,8 +478,9 @@ export default function AdminSpace({
               <p className="text-sm font-bold text-slate-900">Nouvelle pharmacie</p>
               <p className="mt-0.5 text-xs text-slate-500">
                 La région et le quartier (choisi parmi ceux de la ville) localisent la pharmacie ; les
-                coordonnées GPS la placent sur la carte. L’email et le mot de passe sont les
-                identifiants de connexion du pharmacien.
+                coordonnées GPS la placent sur la carte. Un nom d’utilisateur est généré
+                automatiquement ; l’email et le mot de passe complètent les identifiants de connexion
+                du pharmacien.
               </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <label className="block">
@@ -926,7 +949,11 @@ export default function AdminSpace({
           />
           <div className="rounded-2xl border border-violet-200 bg-violet-50/60 p-4">
             <p className="text-sm font-bold text-slate-800">Créer un compte</p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <p className="mt-0.5 text-xs text-slate-500">
+              Le mot de passe est optionnel : s’il est vide, le compte reprend le mot de passe par
+              défaut ({DEMO_PASSWORD}). Les comptes pharmacie se créent dans l’onglet « Pharmacies ».
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <input
                 value={newAccount.name}
                 onChange={(event) => setNewAccount((prev) => ({ ...prev, name: event.target.value }))}
@@ -945,7 +972,7 @@ export default function AdminSpace({
                 onChange={(event) => setNewAccount((prev) => ({ ...prev, role: event.target.value as BackOfficeRole }))}
                 className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
               >
-                {(Object.keys(ROLE_LABELS) as BackOfficeRole[]).map((r) => (
+                {(['admin', 'super_admin'] as BackOfficeRole[]).map((r) => (
                   <option key={r} value={r}>
                     {ROLE_LABELS[r]}
                   </option>
@@ -963,6 +990,13 @@ export default function AdminSpace({
                   </option>
                 ))}
               </select>
+              <input
+                value={newAccount.password}
+                onChange={(event) => setNewAccount((prev) => ({ ...prev, password: event.target.value }))}
+                placeholder="Mot de passe (8 caractères min.)"
+                type="password"
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+              />
             </div>
             <button
               type="button"
@@ -989,6 +1023,7 @@ export default function AdminSpace({
                   <tr key={user.id}>
                     <td className="px-4 py-3">
                       <p className="font-semibold text-slate-800">{user.name}</p>
+                      <p className="text-xs text-slate-400">Nom d’utilisateur : {user.username || '—'}</p>
                       <p className="text-xs text-slate-500">{user.email}</p>
                     </td>
                     <td className="px-4 py-3">

@@ -526,6 +526,7 @@ function toUserAccount(row: Row): UserAccount {
   return {
     id: Number(row.id),
     name: String(row.name),
+    username: String(row.username ?? ''),
     email: String(row.email),
     role: String(row.role) as BackOfficeRole,
     city: row.city === null ? null : String(row.city),
@@ -537,7 +538,7 @@ function toUserAccount(row: Row): UserAccount {
 }
 
 const USER_PROFILE_SELECT = `
-  SELECT u.id, u.name, u.email, u.role, u.status, u.created_at,
+  SELECT u.id, u.name, u.username, u.email, u.role, u.status, u.created_at,
          c.name AS city, u.pharmacy_id, p.name AS pharmacy_name
   FROM users u
   LEFT JOIN cities c ON c.id = u.city_id
@@ -554,6 +555,34 @@ export function getUsers(db: Database): UserAccount[] {
 export function getUserByEmail(db: Database, email: string): UserAccount | null {
   const row = execFirst(db, `${USER_PROFILE_SELECT} WHERE LOWER(u.email) = ?`, [email.toLowerCase()])
   return row ? toUserAccount(row) : null
+}
+
+export function getUserByUsername(db: Database, username: string): UserAccount | null {
+  const row = execFirst(db, `${USER_PROFILE_SELECT} WHERE LOWER(u.username) = ?`, [
+    username.toLowerCase().trim(),
+  ])
+  return row ? toUserAccount(row) : null
+}
+
+function slugify(value: string): string {
+  return (
+    String(value)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'compte'
+  )
+}
+
+function uniqueUsername(db: Database, base: string): string {
+  let username = base
+  let suffix = 2
+  while (execFirst(db, `SELECT id FROM users WHERE username = ?`, [username])) {
+    username = `${base}-${suffix}`
+    suffix += 1
+  }
+  return username
 }
 
 export function getUserByPharmacy(db: Database, pharmacyId: number): UserAccount | null {
@@ -581,10 +610,10 @@ export function getSuperAdmin(db: Database): UserAccount | null {
 
 export async function authenticateUser(
   db: Database,
-  email: string,
+  username: string,
   password: string,
 ): Promise<UserAccount | null> {
-  const account = getUserByEmail(db, email)
+  const account = getUserByUsername(db, username)
   if (!account) return null
   const hash = await hashPassword(password)
   const match = execFirst(db, 'SELECT id FROM users WHERE id = ? AND password = ?', [
@@ -706,6 +735,7 @@ export async function createPharmacy(
 ): Promise<{
   ok: boolean
   pharmacyId?: number
+  accountUsername?: string
   accountEmail?: string
   accountPassword?: string
   error?: string
@@ -767,12 +797,14 @@ export async function createPharmacy(
   }
 
   const accountEmail = email || `pharma.${pharmacyId}@pharmagarde.cm`
+  const accountUsername = uniqueUsername(db, slugify(name))
   const passwordHash = await hashPassword(password)
   db.run(
-    `INSERT INTO users (name, email, role, city_id, pharmacy_id, status, password, created_at)
-     VALUES (?, ?, 'pharmacie', ?, ?, ?, ?, ?)`,
+    `INSERT INTO users (name, username, email, role, city_id, pharmacy_id, status, password, created_at)
+     VALUES (?, ?, ?, 'pharmacie', ?, ?, ?, ?, ?)`,
     [
       `${name} (compte)`,
+      accountUsername,
       accountEmail,
       Number(cityRow.id),
       pharmacyId,
@@ -792,7 +824,13 @@ export async function createPharmacy(
   if (input.verified) {
     logAudit(db, actor, 'validation', `pharmacy:${pharmacyId}`, 'créée vérifiée')
   }
-  return { ok: true, pharmacyId, accountEmail, accountPassword: input.password ? password : undefined }
+  return {
+    ok: true,
+    pharmacyId,
+    accountUsername,
+    accountEmail,
+    accountPassword: input.password ? password : undefined,
+  }
 }
 
 export function updatePharmacyFull(
@@ -903,10 +941,11 @@ export async function createUser(
     const cityRow = execFirst(db, `SELECT id FROM cities WHERE name = ?`, [data.city])
     cityId = cityRow ? Number(cityRow.id) : null
   }
+  const username = uniqueUsername(db, slugify(data.name))
   db.run(
-    `INSERT INTO users (name, email, role, city_id, status, password, created_at)
-     VALUES (?, ?, ?, ?, 'actif', ?, ?)`,
-    [data.name, email, data.role, cityId, passwordHash, new Date().toISOString()],
+    `INSERT INTO users (name, username, email, role, city_id, status, password, created_at)
+     VALUES (?, ?, ?, ?, ?, 'actif', ?, ?)`,
+    [data.name, username, email, data.role, cityId, passwordHash, new Date().toISOString()],
   )
   logAudit(db, actor, 'compte_creation', `user:${email}`, data.role)
   return getUserByEmail(db, email)

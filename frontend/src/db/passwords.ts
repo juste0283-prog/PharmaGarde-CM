@@ -1,5 +1,8 @@
 export const DEMO_PASSWORD = 'PharmaGarde2026'
 
+export const SUPER_ADMIN_USERNAME = 'pharmasuperadmin'
+export const SUPER_ADMIN_PASSWORD = 'pharmaadmin@2026'
+
 function toHex(bytes: Uint8Array): string {
   let hex = ''
   for (let i = 0; i < bytes.length; i += 1) {
