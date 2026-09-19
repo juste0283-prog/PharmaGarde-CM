@@ -6,7 +6,7 @@ let dbPromise: Promise<Database> | null = null
 
 const baseUrl = import.meta.env.BASE_URL
 
-const LOCAL_DB_KEY = 'pharmagarde.db.local.v1'
+const LOCAL_DB_KEY = 'pharmagarde.db.local.v2'
 const SESSION_KEY = 'pharmagarde.space.session.v1'
 export const BACKOFFICE_SESSION_KEY = 'pharmagarde.backoffice.session.v1'
 

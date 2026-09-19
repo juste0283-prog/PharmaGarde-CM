@@ -5,6 +5,7 @@ import {
   getCities,
   getPharmacies,
   getQuartierPoints,
+  getQuartiers,
 } from '../db/queries'
 import type {
   City,
@@ -46,11 +47,7 @@ export function usePharmacyData(
       .then((db) => {
         const cities = getCities(db)
         const quartierPoints = getQuartierPoints(db, city)
-        const quartiers = city
-          ? [...new Set(quartierPoints.map((point) => point.quartier))].sort((a, b) =>
-              a.localeCompare(b),
-            )
-          : []
+        const quartiers = city ? getQuartiers(db, city) : []
         const pharmacies = filterPharmacies(getPharmacies(db, city, position), filters)
         if (!cancelled) {
           setState({
