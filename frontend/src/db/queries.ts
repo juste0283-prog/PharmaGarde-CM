@@ -21,6 +21,7 @@ import type {
   UserAccount,
 } from '../data/pharmacies'
 import { execAll, execFirst, saveDb, type Row } from './database'
+import { DEMO_PASSWORD, hashPassword } from './passwords'
 
 const MINUTE = 60_000
 const HOUR = 3_600_000
@@ -47,12 +48,17 @@ export function getQuartiers(db: Database, cityName: string): string[] {
   const safeCity = cityName.replace(/'/g, "''")
   return execAll(
     db,
-    `SELECT DISTINCT p.quartier
+    `SELECT q.name
+     FROM quartiers q
+     JOIN cities c ON c.id = q.city_id
+     WHERE c.name = '${safeCity}'
+     UNION
+     SELECT DISTINCT p.quartier AS name
      FROM pharmacies p
      JOIN cities c ON c.id = p.city_id
      WHERE c.name = '${safeCity}'
-     ORDER BY p.quartier`,
-  ).map((row) => String(row.quartier))
+     ORDER BY name`,
+  ).map((row) => String(row.name))
 }
 
 export function getQuartierPoints(db: Database, cityName: string): QuartierPoint[] {
@@ -573,6 +579,31 @@ export function getSuperAdmin(db: Database): UserAccount | null {
   return row ? toUserAccount(row) : null
 }
 
+export async function authenticateUser(
+  db: Database,
+  email: string,
+  password: string,
+): Promise<UserAccount | null> {
+  const account = getUserByEmail(db, email)
+  if (!account) return null
+  const hash = await hashPassword(password)
+  const match = execFirst(db, 'SELECT id FROM users WHERE id = ? AND password = ?', [
+    account.id,
+    hash,
+  ])
+  return match ? account : null
+}
+
+export async function setUserPassword(
+  db: Database,
+  userId: number,
+  password: string,
+): Promise<void> {
+  const hash = await hashPassword(password)
+  db.run('UPDATE users SET password = ? WHERE id = ?', [hash, userId])
+  saveDb(db)
+}
+
 export function logAudit(
   db: Database,
   actor: string,
@@ -668,16 +699,32 @@ export function getAdminPharmacies(
   }))
 }
 
-export function createPharmacy(
+export async function createPharmacy(
   db: Database,
   input: NewPharmacyInput,
   actor: string,
-): { ok: boolean; pharmacyId?: number; error?: string } {
+): Promise<{
+  ok: boolean
+  pharmacyId?: number
+  accountEmail?: string
+  accountPassword?: string
+  error?: string
+}> {
   const name = input.name.trim()
   const quartier = input.quartier.trim()
   const phone = input.phone.trim()
   if (!name || !quartier || !phone) {
     return { ok: false, error: 'Nom, quartier et téléphone sont obligatoires.' }
+  }
+  const email = input.email?.trim() || ''
+  const password = input.password || DEMO_PASSWORD
+  if (email) {
+    const existingEmail = execFirst(db, 'SELECT id FROM users WHERE LOWER(email) = ?', [
+      email.toLowerCase(),
+    ])
+    if (existingEmail) {
+      return { ok: false, error: `Un compte utilise déjà l’adresse email : ${email}` }
+    }
   }
   const cityRow = execFirst(db, `SELECT id FROM cities WHERE name = ?`, [input.city.trim()])
   if (!cityRow) return { ok: false, error: `Ville inconnue : ${input.city}` }
@@ -719,15 +766,18 @@ export function createPharmacy(
     insertSchedule.run([pharmacyId, weekday, `Planning initialisé par ${actor}`, now])
   }
 
+  const accountEmail = email || `pharma.${pharmacyId}@pharmagarde.cm`
+  const passwordHash = await hashPassword(password)
   db.run(
-    `INSERT INTO users (name, email, role, city_id, pharmacy_id, status, created_at)
-     VALUES (?, ?, 'pharmacie', ?, ?, ?, ?)`,
+    `INSERT INTO users (name, email, role, city_id, pharmacy_id, status, password, created_at)
+     VALUES (?, ?, 'pharmacie', ?, ?, ?, ?, ?)`,
     [
       `${name} (compte)`,
-      `pharma.${pharmacyId}@pharmagarde.cm`,
+      accountEmail,
       Number(cityRow.id),
       pharmacyId,
       input.verified ? 'actif' : 'en_attente',
+      passwordHash,
       now,
     ],
   )
@@ -737,12 +787,12 @@ export function createPharmacy(
     actor,
     'compte_creation',
     `pharmacy:${pharmacyId}`,
-    `créée par ${actor} — ${quartier}, ${input.city}`,
+    `compte pharmacie ${accountEmail} créé — ${quartier}, ${input.city}`,
   )
   if (input.verified) {
     logAudit(db, actor, 'validation', `pharmacy:${pharmacyId}`, 'créée vérifiée')
   }
-  return { ok: true, pharmacyId }
+  return { ok: true, pharmacyId, accountEmail, accountPassword: input.password ? password : undefined }
 }
 
 export function updatePharmacyFull(
@@ -837,23 +887,29 @@ export function updateUserRole(
   logAudit(db, actor, 'role_changement', `user:${userId}`, role)
 }
 
-export function createUser(
+export async function createUser(
   db: Database,
-  data: { name: string; email: string; role: BackOfficeRole; city: string | null },
+  data: { name: string; email: string; role: BackOfficeRole; city: string | null; password?: string },
   actor: string,
-): UserAccount | null {
+): Promise<UserAccount | null> {
+  const email = data.email.trim().toLowerCase()
+  const existingEmail = execFirst(db, 'SELECT id FROM users WHERE LOWER(email) = ?', [email])
+  if (existingEmail) {
+    throw new Error('Un compte utilise déjà cet email.')
+  }
+  const passwordHash = await hashPassword(data.password || DEMO_PASSWORD)
   let cityId: number | null = null
   if (data.city) {
     const cityRow = execFirst(db, `SELECT id FROM cities WHERE name = ?`, [data.city])
     cityId = cityRow ? Number(cityRow.id) : null
   }
   db.run(
-    `INSERT INTO users (name, email, role, city_id, status, created_at)
-     VALUES (?, ?, ?, ?, 'actif', ?)`,
-    [data.name, data.email, data.role, cityId, new Date().toISOString()],
+    `INSERT INTO users (name, email, role, city_id, status, password, created_at)
+     VALUES (?, ?, ?, ?, 'actif', ?, ?)`,
+    [data.name, email, data.role, cityId, passwordHash, new Date().toISOString()],
   )
-  logAudit(db, actor, 'compte_creation', `user:${data.email}`, data.role)
-  return getUserByEmail(db, data.email)
+  logAudit(db, actor, 'compte_creation', `user:${email}`, data.role)
+  return getUserByEmail(db, email)
 }
 
 export function getAdminReports(

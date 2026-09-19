@@ -1,5 +1,6 @@
 import initSqlJs from 'sql.js'
 import type { Database, SqlValue } from 'sql.js'
+import { DEMO_PASSWORD, hashPassword } from './passwords'
 
 let dbPromise: Promise<Database> | null = null
 
@@ -27,7 +28,7 @@ function base64ToBytes(base64: string): Uint8Array {
   return bytes
 }
 
-function migrate(db: Database): Database {
+async function migrate(db: Database): Promise<Database> {
   try {
     db.run('ALTER TABLE reports ADD COLUMN response TEXT')
   } catch {
@@ -53,6 +54,25 @@ function migrate(db: Database): Database {
       metadata TEXT
     );
   `)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS quartiers (
+      id INTEGER PRIMARY KEY,
+      city_id INTEGER NOT NULL REFERENCES cities(id),
+      name TEXT NOT NULL,
+      UNIQUE (city_id, name)
+    );
+  `)
+  db.run(`
+    INSERT OR IGNORE INTO quartiers (city_id, name)
+    SELECT DISTINCT c.id, p.quartier
+    FROM pharmacies p
+    JOIN cities c ON c.id = p.city_id
+  `)
+  try {
+    db.run('ALTER TABLE users ADD COLUMN password TEXT')
+  } catch {
+    // colonne déjà présente
+  }
   const existing = execFirst(db, 'SELECT COUNT(*) AS n FROM users')
   if (existing && Number(existing.n) === 0) {
     const now = new Date().toISOString()
@@ -76,6 +96,14 @@ function migrate(db: Database): Database {
       [],
     )
   }
+  const withoutPassword = execFirst(
+    db,
+    `SELECT COUNT(*) AS n FROM users WHERE password IS NULL OR password = ''`,
+  )
+  if (withoutPassword && Number(withoutPassword.n) > 0) {
+    const defaultHash = await hashPassword(DEMO_PASSWORD)
+    db.run(`UPDATE users SET password = ? WHERE password IS NULL OR password = ''`, [defaultHash])
+  }
   return db
 }
 
@@ -93,12 +121,12 @@ export async function getDb(): Promise<Database> {
       const saved = localStorage.getItem(LOCAL_DB_KEY)
       if (saved) {
         try {
-          return migrate(new SQL.Database(base64ToBytes(saved)))
+          return await migrate(new SQL.Database(base64ToBytes(saved)))
         } catch {
-          return migrate(new SQL.Database(bytes))
+          return await migrate(new SQL.Database(bytes))
         }
       }
-      return migrate(new SQL.Database(bytes))
+      return await migrate(new SQL.Database(bytes))
     })()
   }
   return dbPromise

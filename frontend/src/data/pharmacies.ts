@@ -222,6 +222,8 @@ export interface NewPharmacyInput {
   longitude: number
   verified: boolean
   source?: string
+  email?: string
+  password?: string
 }
 
 export interface AdminReport {
