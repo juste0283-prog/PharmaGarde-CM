@@ -51,13 +51,13 @@ export default function FiltersBar({
     filters.confirmedOnly
 
   const selectClass =
-    'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+    'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-emerald-500/20'
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
       <div className="flex flex-wrap items-end gap-4">
         <div className="min-w-44 flex-1">
-          <label htmlFor="filtre-ville" className="mb-1 block text-xs font-semibold text-slate-500">
+          <label htmlFor="filtre-ville" className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
             Ville
           </label>
           <select
@@ -77,7 +77,7 @@ export default function FiltersBar({
 
         {city !== '' && (
           <div className="min-w-44 flex-1">
-            <label htmlFor="filtre-quartier" className="mb-1 block text-xs font-semibold text-slate-500">
+            <label htmlFor="filtre-quartier" className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
               Quartier
             </label>
             <select
@@ -100,7 +100,7 @@ export default function FiltersBar({
       </div>
 
       <div className="mt-4">
-        <p className="mb-1.5 text-xs font-semibold text-slate-500">Statut de fiabilité</p>
+        <p className="mb-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">Statut de fiabilité</p>
         <div className="flex flex-wrap gap-2">
           {STATUS_ORDER.map((status) => {
             const meta = STATUS_META[status]
@@ -112,7 +112,7 @@ export default function FiltersBar({
                 aria-pressed={active}
                 onClick={() => onChange(toggleStatus(filters, status))}
                 className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition-all ${
-                  active ? `${meta.badge} ring-2 ring-offset-1` : 'bg-white text-slate-500 ring-slate-300 hover:ring-slate-400'
+                  active ? `${meta.badge} ring-2 ring-offset-1 dark:ring-offset-slate-900` : 'bg-white text-slate-500 ring-slate-300 hover:ring-slate-400 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-600'
                 }`}
               >
                 <span className={`size-1.5 rounded-full ${meta.dot}`} aria-hidden="true" />
@@ -124,7 +124,7 @@ export default function FiltersBar({
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+        <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
           <input
             type="checkbox"
             checked={filters.confirmedOnly}
@@ -137,14 +137,14 @@ export default function FiltersBar({
         </label>
 
         <div className="flex items-center gap-3">
-          <p className="text-sm font-medium text-slate-600">
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
             {resultCount} résultat{resultCount > 1 ? 's' : ''}
           </p>
           {hasActiveFilters && (
             <button
               type="button"
               onClick={() => onChange(EMPTY_FILTERS)}
-              className="text-sm font-semibold text-emerald-700 transition-colors hover:text-emerald-900"
+              className="text-sm font-semibold text-emerald-700 transition-colors hover:text-emerald-900 dark:text-emerald-400 dark:hover:text-emerald-300"
             >
               Réinitialiser
             </button>

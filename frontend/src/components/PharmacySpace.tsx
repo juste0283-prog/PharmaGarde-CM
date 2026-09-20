@@ -29,6 +29,7 @@ import BackOfficeShell, {
   Panel,
   SectionTitle,
   StatCard,
+  NavIcon,
   type ShellNavItem,
 } from './BackOfficeShell'
 
@@ -81,7 +82,7 @@ const NAV: ShellNavItem[] = [
 ]
 
 const SWITCH_ON = 'bg-emerald-600'
-const SWITCH_OFF = 'bg-slate-300'
+const SWITCH_OFF = 'bg-slate-300 dark:bg-slate-600'
 const KNOB_ON = 'translate-x-5'
 const KNOB_OFF = 'translate-x-0'
 
@@ -273,15 +274,17 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
           <SectionTitle
             title={`Bonjour, ${profile.pharmacy.name.split(' ')[0] ?? ''}`}
             subtitle="Voici l’activité de votre pharmacie aujourd’hui."
+            icon={<NavIcon name="grid" />}
+            accent="emerald"
             chip={
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${meta.badge}`}>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ring-1 ${meta.badge} ring-inset`}>
                 <span className="size-1.5 rounded-full bg-current" />
                 {meta.label}
               </span>
             }
           />
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="pg-stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Garde du jour"
               value={
@@ -293,29 +296,31 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
                   : 'Non programmée'
               }
               note={WEEKDAYS[today]}
+              icon={<NavIcon name="clock" />}
             />
-            <StatCard label="Planning actif" value={`${activeDays}/7 jours`} note="jours avec garde publiée" />
-            <StatCard label="Signalements ouverts" value={`${openReports}`} note="à traiter" />
+            <StatCard label="Planning actif" value={`${activeDays}/7 jours`} note="jours avec garde publiée" icon={<NavIcon name="calendar" />} />
+            <StatCard label="Signalements ouverts" value={`${openReports}`} note="à traiter" icon={<NavIcon name="flag" />} />
             <StatCard
               label="Dernière confirmation"
               value={profile.lastConfirmationAt ? formatTime(profile.lastConfirmationAt) : '—'}
               note={profile.confirmedRecently ? 'aujourd’hui' : 'aucune récente'}
+              icon={<NavIcon name="clipboard" />}
             />
           </div>
 
           <div className="grid gap-5 lg:grid-cols-2">
-            <Panel title={profile.gardeTodayLabel ? 'Garde en cours' : 'Aucune garde aujourd’hui'}>
+            <Panel title={profile.gardeTodayLabel ? 'Garde en cours' : 'Aucune garde aujourd’hui'} icon={<NavIcon name="clock" />}>
               {profile.gardeTodayLabel ? (
                 <div>
-                  <p className="text-sm text-slate-600">
-                    {WEEKDAYS[today]} — <span className="font-semibold text-slate-900">{profile.gardeTodayLabel}</span>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    {WEEKDAYS[today]} — <span className="font-semibold text-slate-900 dark:text-slate-100">{profile.gardeTodayLabel}</span>
                   </p>
                   {profile.confirmedRecently && profile.lastConfirmationAt ? (
-                    <p className="mt-2 text-sm font-medium text-emerald-700">
+                    <p className="mt-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
                       Confirmée à {formatTime(profile.lastConfirmationAt)}
                     </p>
                   ) : (
-                    <p className="mt-2 text-xs text-slate-500">
+                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                       Dernière confirmation : {profile.lastConfirmationAt ? formatDateTime(profile.lastConfirmationAt) : 'aucune'}
                     </p>
                   )}
@@ -323,21 +328,21 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
                     type="button"
                     onClick={handleConfirm}
                     disabled={busy || profile.confirmedRecently}
-                    className="mt-4 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                    className="mt-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition-all duration-200 hover:from-emerald-700 hover:to-teal-700 disabled:cursor-not-allowed disabled:from-slate-300 disabled:to-slate-300 disabled:shadow-none"
                   >
                     {busy ? 'Enregistrement…' : profile.confirmedRecently ? 'Garde confirmée' : 'Confirmer la garde'}
                   </button>
                 </div>
               ) : (
                 <div>
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
                     Vous n’avez pas programmé de garde aujourd’hui. Ouvrez le planning pour décider de
                     votre présence ce jour, ou laisser la pharmacie fermée exceptionnellement.
                   </p>
                   <button
                     type="button"
                     onClick={() => setSection('planning')}
-                    className="mt-4 rounded-lg border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-50"
+                    className="mt-4 rounded-lg border border-emerald-300 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950"
                   >
                     Ouvrir le planning
                   </button>
@@ -345,22 +350,22 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
               )}
             </Panel>
 
-            <Panel title="Aperçu du planning" aside={<span className="text-xs font-semibold text-slate-400">{activeDays}/7 jours actifs</span>}>
+            <Panel title="Aperçu du planning" icon={<NavIcon name="calendar" />} aside={<span className="text-xs font-semibold text-slate-400">{activeDays}/7 jours actifs</span>}>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
                 {week.map((day) => (
                   <div
                     key={day.weekday}
                     className={`rounded-lg border p-2.5 ${
-                      day.enabled ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50 opacity-70'
+                      day.enabled ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/50' : 'border-slate-200 bg-slate-50 opacity-70 dark:border-slate-700 dark:bg-slate-800'
                     }`}
                   >
-                    <p className="truncate text-xs font-bold text-slate-800">{WEEKDAYS[day.weekday]}</p>
+                    <p className="truncate text-xs font-bold text-slate-800 dark:text-slate-200">{WEEKDAYS[day.weekday]}</p>
                     {day.enabled ? (
-                      <p className="text-[11px] font-semibold text-emerald-700">
+                      <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
                         {formatHour(day.start)}h→{formatHour(day.end)}h
                       </p>
                     ) : (
-                      <p className="text-[11px] text-slate-400">Pas de garde</p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500">Pas de garde</p>
                     )}
                   </div>
                 ))}
@@ -368,7 +373,7 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
               <button
                 type="button"
                 onClick={() => setSection('planning')}
-                className="mt-4 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-emerald-500 hover:text-emerald-700"
+                className="mt-4 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-emerald-500 hover:text-emerald-700 dark:border-slate-600 dark:text-slate-200 dark:hover:border-emerald-500 dark:hover:text-emerald-400"
               >
                 Gérer mon planning de garde
               </button>
@@ -382,40 +387,42 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
           <SectionTitle
             title="Planning de garde"
             subtitle="Chaque jour, vous décidez si la pharmacie est de garde — et de quelle heure à quelle heure. Les changements sont visibles par le public immédiatement."
+            icon={<NavIcon name="calendar" />}
+            accent="emerald"
             chip={
               changedDays.length > 0 ? (
-                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-200">
                   {changedDays.length} modification(s) en attente
                 </span>
               ) : (
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                   Planning à jour
                 </span>
               )
             }
           />
 
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <ul className="divide-y divide-slate-100">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
               {week.map((day) => {
                 const isToday = day.weekday === today
                 return (
                   <li
                     key={day.weekday}
-                    className={`flex flex-wrap items-center gap-3 px-5 py-3.5 ${isToday ? 'bg-emerald-50/60' : ''}`}
+                    className={`flex flex-wrap items-center gap-3 px-5 py-3.5 ${isToday ? 'bg-emerald-50/60 dark:bg-emerald-950/40' : ''}`}
                   >
                     <div className="w-36 shrink-0">
-                      <p className="text-sm font-bold text-slate-900">
+                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
                         {WEEKDAYS[day.weekday]}
                         {isToday && <span className="ml-1.5 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">aujourd’hui</span>}
                       </p>
-                      <p className={`text-xs ${day.enabled ? 'text-emerald-700' : 'text-slate-400'}`}>
+                      <p className={`text-xs ${day.enabled ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
                         {day.enabled ? 'En garde — publiée' : 'Pas de garde'}
                       </p>
                     </div>
 
                     <div className="flex shrink-0 items-center gap-3">
-                      <span className="text-xs font-medium text-slate-500">En garde ?</span>
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">En garde ?</span>
                       <button
                         type="button"
                         role="switch"
@@ -431,24 +438,24 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
                     </div>
 
                     <div className="ml-auto flex items-center gap-2">
-                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
                         De
                         <input
                           type="time"
                           value={day.start}
                           disabled={!day.enabled}
                           onChange={(event) => patchDay(day.weekday, { start: event.target.value })}
-                          className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm font-semibold text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                          className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm font-semibold text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-emerald-500/20 dark:disabled:bg-slate-800 dark:disabled:text-slate-500"
                         />
                       </label>
-                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
                         À
                         <input
                           type="time"
                           value={day.end}
                           disabled={!day.enabled}
                           onChange={(event) => patchDay(day.weekday, { end: event.target.value })}
-                          className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm font-semibold text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                          className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm font-semibold text-slate-900 outline-none transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-emerald-500/20 dark:disabled:bg-slate-800 dark:disabled:text-slate-500"
                         />
                       </label>
                     </div>
@@ -456,7 +463,7 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
                 )
               })}
             </ul>
-            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 bg-slate-50 px-5 py-3">
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 bg-slate-50 px-5 py-3 dark:border-slate-800 dark:bg-slate-900/70">
               {changedDays.length > 0 && (
                 <button
                   type="button"
@@ -464,7 +471,7 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
                     setWeek(buildWeek(schedules))
                     setNotice(null)
                   }}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100"
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
                   Annuler
                 </button>
@@ -473,14 +480,14 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
                 type="button"
                 onClick={handleSavePlanning}
                 disabled={changedDays.length === 0}
-                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition-all duration-200 hover:from-emerald-700 hover:to-teal-700 disabled:cursor-not-allowed disabled:from-slate-300 disabled:to-slate-300 disabled:shadow-none"
               >
                 {changedDays.length === 0 ? 'Planning à jour' : `Enregistrer le planning (${changedDays.length})`}
               </button>
             </div>
           </div>
 
-          <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs leading-relaxed text-slate-500">
+          <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs leading-relaxed text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
             Source actuelle : {schedules[0]?.source ?? '—'}. L’annulation d’une garde le jour même est
             visible immédiatement : la pharmacie ne sera plus affichée comme garde ce jour.
           </p>
@@ -492,68 +499,70 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
           <SectionTitle
             title="Profil & informations"
             subtitle="Les coordonnées affichées au public sur la fiche de votre pharmacie."
+            icon={<NavIcon name="building" />}
+            accent="emerald"
             chip={profile.verified && <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Profil vérifié</span>}
           />
 
-          <Panel title="Informations de la fiche">
+          <Panel title="Informations de la fiche" icon={<NavIcon name="clipboard" />}>
             <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Nom</dt>
-                <dd className="mt-1 text-sm font-semibold text-slate-900">{profile.pharmacy.name}</dd>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Nom</dt>
+                <dd className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{profile.pharmacy.name}</dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Ville</dt>
-                <dd className="mt-1 text-sm text-slate-700">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Ville</dt>
+                <dd className="mt-1 text-sm text-slate-700 dark:text-slate-300">
                   {profile.pharmacy.city} — {profile.pharmacy.region}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Quartier</dt>
-                <dd className="mt-1 text-sm text-slate-700">{profile.pharmacy.quartier}</dd>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Quartier</dt>
+                <dd className="mt-1 text-sm text-slate-700 dark:text-slate-300">{profile.pharmacy.quartier}</dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Situation</dt>
-                <dd className="mt-1 text-sm text-slate-700">{profile.pharmacy.address}</dd>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Situation</dt>
+                <dd className="mt-1 text-sm text-slate-700 dark:text-slate-300">{profile.pharmacy.address}</dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Téléphone</dt>
-                <dd className="mt-1 text-sm font-medium text-slate-900">{profile.pharmacy.phone}</dd>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Téléphone</dt>
+                <dd className="mt-1 text-sm font-medium text-slate-900 dark:text-slate-100">{profile.pharmacy.phone}</dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Source</dt>
-                <dd className="mt-1 text-sm text-slate-600">{profile.pharmacy.source}</dd>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Source</dt>
+                <dd className="mt-1 text-sm text-slate-600 dark:text-slate-400">{profile.pharmacy.source}</dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Statut</dt>
-                <dd className="mt-1 text-sm text-slate-700">{meta.label} — {meta.description}</dd>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Statut</dt>
+                <dd className="mt-1 text-sm text-slate-700 dark:text-slate-300">{meta.label} — {meta.description}</dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Dernière mise à jour</dt>
-                <dd className="mt-1 text-sm text-slate-600">{profile.pharmacy.lastUpdated}</dd>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Dernière mise à jour</dt>
+                <dd className="mt-1 text-sm text-slate-600 dark:text-slate-400">{profile.pharmacy.lastUpdated}</dd>
               </div>
             </dl>
           </Panel>
 
-          <Panel title={editingProfile ? 'Modifier les informations' : 'Modifier la fiche'}>
+          <Panel title={editingProfile ? 'Modifier les informations' : 'Modifier la fiche'} icon={<NavIcon name="user" />}>
             {editingProfile ? (
               <div className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div>
-                    <label htmlFor="pro-phone" className="mb-1 block text-xs font-semibold text-slate-600">Téléphone</label>
+                    <label htmlFor="pro-phone" className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-400">Téléphone</label>
                     <input
                       id="pro-phone"
                       value={phoneDraft}
                       onChange={(event) => setPhoneDraft(event.target.value)}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-emerald-500/20"
                     />
                   </div>
                   <div>
-                    <label htmlFor="pro-quartier" className="mb-1 block text-xs font-semibold text-slate-600">Quartier</label>
+                    <label htmlFor="pro-quartier" className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-400">Quartier</label>
                     <select
                       id="pro-quartier"
                       value={quartierDraft}
                       onChange={(event) => setQuartierDraft(event.target.value)}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-emerald-500/20"
                     >
                       {cityQuartiers.map((q) => (
                         <option key={q} value={q}>
@@ -563,12 +572,12 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="pro-address" className="mb-1 block text-xs font-semibold text-slate-600">Adresse</label>
+                    <label htmlFor="pro-address" className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-400">Adresse</label>
                     <input
                       id="pro-address"
                       value={addressDraft}
                       onChange={(event) => setAddressDraft(event.target.value)}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-emerald-500/20"
                     />
                   </div>
                 </div>
@@ -576,14 +585,14 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
                   <button
                     type="button"
                     onClick={handleSaveProfile}
-                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+                    className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition-all duration-200 hover:from-emerald-700 hover:to-teal-700"
                   >
                     Enregistrer
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingProfile(false)}
-                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100"
+                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                   >
                     Annuler
                   </button>
@@ -591,13 +600,13 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
               </div>
             ) : (
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   Téléphone, quartier et adresse sont modifiables depuis cet espace.
                 </p>
                 <button
                   type="button"
                   onClick={startProfileEdit}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-emerald-500 hover:text-emerald-700"
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-emerald-500 hover:text-emerald-700 dark:border-slate-600 dark:text-slate-200 dark:hover:border-emerald-500 dark:hover:text-emerald-400"
                 >
                   Modifier mes informations
                 </button>
@@ -612,34 +621,36 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
           <SectionTitle
             title="Signalements reçus"
             subtitle="Alertes publiques concernant cette pharmacie. Répondez pour informer la communauté, chaque traitement est horodaté."
+            icon={<NavIcon name="flag" />}
+            accent="emerald"
             chip={
               openReports > 0 ? (
-                <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-bold text-rose-700">{openReports} à traiter</span>
+                <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-bold text-rose-700 dark:bg-rose-950 dark:text-rose-200">{openReports} à traiter</span>
               ) : (
-                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Aucune alerte en cours</span>
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Aucune alerte en cours</span>
               )
             }
           />
           {reports.length === 0 && (
-            <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+            <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
               Aucun signalement. Votre pharmacie est en règle.
             </p>
           )}
           <div className="space-y-3">
             {reports.map((report) => (
-              <div key={report.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div key={report.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900 dark:hover:shadow-slate-900/60">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-bold text-slate-900">{REPORT_TYPE_LABELS[report.type] ?? report.type}</p>
-                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+                  <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{REPORT_TYPE_LABELS[report.type] ?? report.type}</p>
+                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                     {REPORT_STATUS_LABELS[report.status] ?? report.status}
                   </span>
                 </div>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">{report.description}</p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{report.description}</p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   {report.author} · {formatDateTime(report.createdAt)}
                 </p>
                 {report.response && (
-                  <p className="mt-2 rounded-lg bg-slate-50 p-3 text-xs italic leading-relaxed text-slate-600">
+                  <p className="mt-2 rounded-lg bg-slate-50 p-3 text-xs italic leading-relaxed text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
                     Réponse : {report.response}
                   </p>
                 )}
@@ -648,14 +659,14 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
                     <button
                       type="button"
                       onClick={() => handleReport(report.id, 'resolu')}
-                      className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-700"
+                      className="rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-emerald-600/20 transition-all duration-200 hover:from-emerald-700 hover:to-teal-700"
                     >
                       Marquer résolu
                     </button>
                     <button
                       type="button"
                       onClick={() => handleReport(report.id, 'rejete')}
-                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100"
+                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                     >
                       Rejeter
                     </button>
@@ -672,28 +683,30 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
           <SectionTitle
             title="Historique des confirmations"
             subtitle="Horodatages des garanties de présence enregistrées par la pharmacie."
+            icon={<NavIcon name="check" />}
+            accent="emerald"
           />
           {confirmations.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+            <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
               Aucune confirmation enregistrée pour le moment.
             </p>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <table className="w-full text-left text-sm">
-                <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400">
                   <tr>
                     <th className="px-5 py-3">Date</th>
                     <th className="px-5 py-3">Acteur</th>
                     <th className="px-5 py-3">Résultat</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {confirmations.map((confirmation) => (
-                    <tr key={confirmation.id}>
-                      <td className="whitespace-nowrap px-5 py-3 text-xs text-slate-500">{formatDateTime(confirmation.timestamp)}</td>
-                      <td className="px-5 py-3 font-medium text-slate-800">{confirmation.actor}</td>
+                    <tr key={confirmation.id} className="transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/50">
+                      <td className="whitespace-nowrap px-5 py-3 text-xs text-slate-500 dark:text-slate-400">{formatDateTime(confirmation.timestamp)}</td>
+                      <td className="px-5 py-3 font-medium text-slate-800 dark:text-slate-200">{confirmation.actor}</td>
                       <td className="px-5 py-3">
-                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
                           {confirmation.result === 'ok' ? 'Confirmée' : confirmation.result}
                         </span>
                       </td>
@@ -706,7 +719,7 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
         </div>
       )}
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-500">
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
         <p>
           Les actions de cet espace sont enregistrées localement dans votre navigateur (base web
           SQLite), en attendant l’API Node.js prévue pour l’authentification et la synchronisation.
@@ -714,7 +727,7 @@ export default function PharmacySpace({ pharmacyId, onLogout, onExit }: Pharmacy
         <button
           type="button"
           onClick={handleReset}
-          className="rounded-lg border border-rose-200 px-3 py-1.5 font-semibold text-rose-600 transition-colors hover:bg-rose-50"
+          className="rounded-lg border border-rose-200 px-3 py-1.5 font-semibold text-rose-600 transition-colors hover:bg-rose-50 dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950/50"
         >
           Réinitialiser les données locales
         </button>

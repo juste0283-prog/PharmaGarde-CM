@@ -23,39 +23,39 @@ export default function PharmacyCard({
 }) {
   const distance = pharmacy.distanceKm ?? pharmacy.cityDistanceKm
   return (
-    <article className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+    <article className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:shadow-slate-900/50">
       <div className="flex items-start justify-between gap-3">
-        <h3 className="text-base font-bold text-slate-900">{pharmacy.name}</h3>
+        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{pharmacy.name}</h3>
         <StatusBadge pharmacy={pharmacy} />
       </div>
 
-      <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
+      <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
         <MapPinIcon />
         {pharmacy.city} · {pharmacy.region}
       </p>
-      <p className="mt-0.5 pl-5 text-sm text-slate-600">Quartier : {pharmacy.quartier}</p>
-      <p className="mt-0.5 pl-5 text-sm text-slate-600">{pharmacy.address}</p>
+      <p className="mt-0.5 pl-5 text-sm text-slate-600 dark:text-slate-300">Quartier : {pharmacy.quartier}</p>
+      <p className="mt-0.5 pl-5 text-sm text-slate-600 dark:text-slate-300">{pharmacy.address}</p>
 
-      <dl className="mt-4 space-y-2 rounded-xl bg-slate-50 p-3 text-sm">
+      <dl className="mt-4 space-y-2 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-800/60">
         <div className="flex items-center gap-2">
           <ClockIcon />
-          <dt className="font-semibold text-slate-700">Garde en cours :</dt>
-          <dd className="text-slate-600">{pharmacy.currentGarde}</dd>
+          <dt className="font-semibold text-slate-700 dark:text-slate-200">Garde en cours :</dt>
+          <dd className="text-slate-600 dark:text-slate-300">{pharmacy.currentGarde}</dd>
         </div>
         <div className="flex items-center gap-2">
           <ShieldIcon />
-          <dt className="font-semibold text-slate-700">Fiabilité :</dt>
-          <dd className="text-slate-600" title={STATUS_META[pharmacy.status].description}>
+          <dt className="font-semibold text-slate-700 dark:text-slate-200">Fiabilité :</dt>
+          <dd className="text-slate-600 dark:text-slate-300" title={STATUS_META[pharmacy.status].description}>
             {pharmacy.lastUpdated}
           </dd>
         </div>
         {distance !== null && (
           <div className="flex items-center gap-2">
             <RulerIcon />
-            <dt className="font-semibold text-slate-700">
+            <dt className="font-semibold text-slate-700 dark:text-slate-200">
               {pharmacy.distanceKm !== null ? 'Distance de vous :' : 'Distance (centre-ville) :'}
             </dt>
-            <dd className="text-slate-600">
+            <dd className="text-slate-600 dark:text-slate-300">
               à {distance.toLocaleString('fr-FR')} km
             </dd>
           </div>
@@ -73,7 +73,7 @@ export default function PharmacyCard({
           <button
             type="button"
             onClick={() => onDirections(pharmacy)}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:border-emerald-500 hover:text-emerald-700"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:border-emerald-500 hover:text-emerald-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-emerald-500 dark:hover:text-emerald-400"
           >
             <RouteIcon /> Itinéraire
           </button>
@@ -82,19 +82,19 @@ export default function PharmacyCard({
           href={`https://www.google.com/maps/dir/?api=1&destination=${pharmacy.latitude},${pharmacy.longitude}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 text-center text-xs font-medium text-slate-400 transition-colors hover:text-emerald-700"
+          className="mt-2 text-center text-xs font-medium text-slate-400 transition-colors hover:text-emerald-700 dark:text-slate-500 dark:hover:text-emerald-400"
         >
           Ouvrir dans Google Maps ↗
         </a>
       </div>
 
-      <p className="mt-3 text-[11px] leading-snug text-slate-400">
+      <p className="mt-3 text-[11px] leading-snug text-slate-400 dark:text-slate-500">
         Source : {pharmacy.source}
       </p>
       <button
         type="button"
         onClick={() => onReport?.(pharmacy)}
-        className="mt-2 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-rose-600"
+        className="mt-2 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400"
       >
         <FlagIcon /> Signaler une anomalie
       </button>

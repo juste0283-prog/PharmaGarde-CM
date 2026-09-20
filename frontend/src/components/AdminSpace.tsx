@@ -42,6 +42,7 @@ import BackOfficeShell, {
   Panel,
   SectionTitle,
   StatCard,
+  NavIcon,
   type ShellNavItem,
 } from './BackOfficeShell'
 
@@ -73,15 +74,15 @@ function formatHour(hhmm: string): string {
 function statBadge(status: string): string {
   switch (status) {
     case 'confirme':
-      return 'bg-rose-100 text-rose-800'
+      return 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200'
     case 'resolu':
-      return 'bg-emerald-100 text-emerald-800'
+      return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
     case 'rejete':
-      return 'bg-slate-100 text-slate-700'
+      return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
     case 'en_verification':
-      return 'bg-amber-100 text-amber-800'
+      return 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200'
     default:
-      return 'bg-sky-100 text-sky-800'
+      return 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200'
   }
 }
 
@@ -149,7 +150,7 @@ export default function AdminSpace({
   }>({ name: '', quartier: '', address: '', phone: '', latitude: '', longitude: '' })
 
   const fieldClass =
-    'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100'
+    'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-violet-500/20'
 
   const existingQuartiers = useMemo(
     () => getQuartiers(db, showCreate ? newPharmacy.city : (city ?? '')),
@@ -329,6 +330,11 @@ export default function AdminSpace({
 
   const accent = isSuper ? 'violet' : 'indigo'
 
+  const primaryGrad =
+    accent === 'violet'
+      ? 'from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700'
+      : 'from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700'
+
   const nav: ShellNavItem[] = [
     { id: 'dashboard', label: 'Tableau de bord', icon: 'grid' },
     { id: 'pharmacies', label: 'Pharmacies & comptes', icon: 'building' },
@@ -357,12 +363,12 @@ export default function AdminSpace({
 
   const scopeChip = isSuper ? (
     <div className="flex items-center gap-2">
-      <span className="text-xs font-semibold text-slate-500">Périmètre :</span>
+      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Périmètre :</span>
       <select
         value={scope ?? ''}
         onChange={(event) => setScope(event.target.value || null)}
         aria-label="Changer de zone"
-        className={`rounded-lg border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100`}
+        className={`rounded-lg border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-violet-500/20`}
       >
         <option value="">Toutes les villes</option>
         {data.cities.map((c) => (
@@ -373,7 +379,7 @@ export default function AdminSpace({
       </select>
     </div>
   ) : (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-200">
       <span className="size-1.5 rounded-full bg-current" />
       Zone assignée : {city}
     </span>
@@ -396,25 +402,27 @@ export default function AdminSpace({
       {error && <NoticeBanner kind="error">{error}</NoticeBanner>}
 
       {tab === 'dashboard' && (
-        <div className="space-y-5">
+        <div className="space-y-6">
           <SectionTitle
             title="Supervision"
             subtitle={`Pilotage ${isSuper ? 'de la plateforme entière' : `de votre zone (${city})`}.`}
+            icon={<NavIcon name="grid" />}
+            accent={accent}
             chip={scopeChip}
           />
           {stats && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <StatCard label="Villes & zones" value={`${stats.cities}`} note={isSuper ? 'les 10 chefs-lieux' : 'votre zone assignée'} />
-              <StatCard label="Pharmacies" value={`${stats.pharmacies}`} note={`${stats.validated} validées`} />
-              <StatCard label="Comptes en attente" value={`${stats.pendingPharmacies}`} note="à valider" />
-              <StatCard label="Signalements ouverts" value={`${stats.openReports}`} note="à modérer" />
-              <StatCard label="Confirmations (24 h)" value={`${stats.confirmations24h}`} note="gardes confirmées" />
-              <StatCard label="Gardes programmées" value={`${stats.activeSchedules}`} note="créneaux publiés" />
+            <div className="pg-stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <StatCard label="Villes & zones" value={`${stats.cities}`} note={isSuper ? 'les 10 chefs-lieux' : 'votre zone assignée'} icon={<NavIcon name="pin" />} accent={accent} />
+              <StatCard label="Pharmacies" value={`${stats.pharmacies}`} note={`${stats.validated} validées`} icon={<NavIcon name="building" />} accent={accent} />
+              <StatCard label="Comptes en attente" value={`${stats.pendingPharmacies}`} note="à valider" icon={<NavIcon name="users" />} accent={accent} />
+              <StatCard label="Signalements ouverts" value={`${stats.openReports}`} note="à modérer" icon={<NavIcon name="flag" />} accent={accent} />
+              <StatCard label="Confirmations (24 h)" value={`${stats.confirmations24h}`} note="gardes confirmées" icon={<NavIcon name="clipboard" />} accent={accent} />
+              <StatCard label="Gardes programmées" value={`${stats.activeSchedules}`} note="créneaux publiés" icon={<NavIcon name="calendar" />} accent={accent} />
             </div>
           )}
           <div className="grid gap-5 lg:grid-cols-2">
-            <Panel title={`Responsabilités — ${ROLE_LABELS[role]}`}>
-              <ul className="list-disc space-y-1.5 pl-5 text-sm text-slate-600">
+            <Panel title={`Responsabilités — ${ROLE_LABELS[role]}`} icon={<NavIcon name="shield" />} accent={accent}>
+              <ul className="list-disc space-y-1.5 pl-5 text-sm text-slate-600 dark:text-slate-300">
                 {isSuper ? (
                   <>
                     <li>Gestion complète : rôles, paramètres, sécurité, audit, arbitrage sur toutes les villes.</li>
@@ -430,7 +438,7 @@ export default function AdminSpace({
                 )}
               </ul>
             </Panel>
-            <Panel title="Dernières traces d’audit">
+            <Panel title="Dernières traces d’audit" icon={<NavIcon name="list" />} accent={accent}>
               {data.audit.length === 0 ? (
                 <p className="text-sm text-slate-500">
                   {isSuper
@@ -440,12 +448,12 @@ export default function AdminSpace({
               ) : (
                 <ul className="space-y-2">
                   {data.audit.slice(0, 6).map((entry) => (
-                    <li key={entry.id} className="flex items-start justify-between gap-3 text-sm">
-                      <span className="text-slate-700">
+                    <li key={entry.id} className="flex items-start justify-between gap-3 rounded-xl bg-slate-50/60 px-3 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:bg-slate-800/50 dark:hover:bg-slate-800">
+                      <span className="text-slate-700 dark:text-slate-300">
                         <strong>{entry.actor}</strong> — {ACTION_LABELS[entry.action] ?? entry.action}{' '}
-                        <span className="text-slate-400">({entry.resource})</span>
+                        <span className="text-slate-400 dark:text-slate-500">({entry.resource})</span>
                       </span>
-                      <span className="shrink-0 text-xs text-slate-400">{formatDateTime(entry.timestamp)}</span>
+                      <span className="shrink-0 text-xs text-slate-400 dark:text-slate-500">{formatDateTime(entry.timestamp)}</span>
                     </li>
                   ))}
                 </ul>
@@ -460,13 +468,15 @@ export default function AdminSpace({
           <SectionTitle
             title="Validation des pharmacies & comptes"
             subtitle={`${data.pharmacies.length} pharmacies — création et mise à jour par la supervision : région, quartier et coordonnées GPS inclus.`}
+            icon={<NavIcon name="building" />}
+            accent={accent}
             chip={
               <span className="flex flex-wrap items-center gap-2">
                 {scopeChip}
                 <button
                   type="button"
                   onClick={() => setShowCreate((value) => !value)}
-                  className="rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-700"
+                  className={`rounded-xl bg-gradient-to-r ${primaryGrad} px-3.5 py-2 text-sm font-semibold text-white shadow-md shadow-black/10 transition-all duration-200 hover:-translate-y-px`}
                 >
                   {showCreate ? 'Annuler' : '+ Créer une pharmacie'}
                 </button>
@@ -474,9 +484,9 @@ export default function AdminSpace({
             }
           />
           {showCreate && (
-            <div className="rounded-2xl border border-violet-200 bg-white p-5 shadow-sm">
-              <p className="text-sm font-bold text-slate-900">Nouvelle pharmacie</p>
-              <p className="mt-0.5 text-xs text-slate-500">
+            <div className="rounded-2xl border border-violet-200 bg-white p-5 shadow-sm dark:border-violet-900 dark:bg-slate-900">
+              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Nouvelle pharmacie</p>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                 La région et le quartier (choisi parmi ceux de la ville) localisent la pharmacie ; les
                 coordonnées GPS la placent sur la carte. Un nom d’utilisateur est généré
                 automatiquement ; l’email et le mot de passe complètent les identifiants de connexion
@@ -484,7 +494,7 @@ export default function AdminSpace({
               </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <label className="block">
-                  <span className="text-xs font-semibold text-slate-600">Nom *</span>
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Nom *</span>
                   <input
                     id="np-name"
                     value={newPharmacy.name}
@@ -494,7 +504,7 @@ export default function AdminSpace({
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-semibold text-slate-600">Région *</span>
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Région *</span>
                   <select
                     id="np-region"
                     value={selectedRegion}
@@ -504,7 +514,7 @@ export default function AdminSpace({
                       setNewPharmacy((prev) => ({ ...prev, city: '', quartier: '', latitude: 0, longitude: 0 }))
                     }}
                     disabled={!isSuper}
-                    className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-slate-100`}
+                    className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-800`}
                   >
                     {!isSuper ? (
                       <option value={selectedRegion}>{selectedRegion || 'Région de la zone assignée'}</option>
@@ -521,13 +531,13 @@ export default function AdminSpace({
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-xs font-semibold text-slate-600">Ville *</span>
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Ville *</span>
                   <select
                     id="np-city"
                     value={newPharmacy.city}
                     onChange={(event) => pickCityCoordinates(event.target.value)}
                     disabled={!isSuper || !selectedRegion}
-                    className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-slate-100`}
+                    className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-800`}
                   >
                     {!isSuper ? (
                       <option value={newPharmacy.city}>{newPharmacy.city}</option>
@@ -546,13 +556,13 @@ export default function AdminSpace({
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-xs font-semibold text-slate-600">Quartier *</span>
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Quartier *</span>
                   <select
                     id="np-quartier"
                     value={newPharmacy.quartier}
                     onChange={(event) => setNewPharmacy((prev) => ({ ...prev, quartier: event.target.value }))}
                     disabled={!newPharmacy.city}
-                    className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-slate-100`}
+                    className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-800`}
                   >
                     <option value="">
                       {newPharmacy.city ? 'Choisir un quartier…' : 'Choisissez d’abord une ville'}
@@ -565,7 +575,7 @@ export default function AdminSpace({
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-xs font-semibold text-slate-600">Téléphone *</span>
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Téléphone *</span>
                   <input
                     id="np-phone"
                     value={newPharmacy.phone}
@@ -575,7 +585,7 @@ export default function AdminSpace({
                   />
                 </label>
                 <label className="block sm:col-span-2">
-                  <span className="text-xs font-semibold text-slate-600">Adresse</span>
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Adresse</span>
                   <input
                     id="np-address"
                     value={newPharmacy.address}
@@ -585,7 +595,7 @@ export default function AdminSpace({
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-semibold text-slate-600">Email du compte</span>
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Email du compte</span>
                   <input
                     id="np-email"
                     type="email"
@@ -596,7 +606,7 @@ export default function AdminSpace({
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-semibold text-slate-600">Mot de passe</span>
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Mot de passe</span>
                   <input
                     id="np-password"
                     type="password"
@@ -607,7 +617,7 @@ export default function AdminSpace({
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-semibold text-slate-600">Latitude</span>
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Latitude</span>
                   <input
                     id="np-lat"
                     type="number"
@@ -620,7 +630,7 @@ export default function AdminSpace({
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-semibold text-slate-600">Longitude</span>
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Longitude</span>
                   <input
                     id="np-lng"
                     type="number"
@@ -634,7 +644,7 @@ export default function AdminSpace({
                 </label>
               </div>
               {isSuper && (
-                <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
+                <label className="mt-3 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                   <input
                     id="np-verified"
                     type="checkbox"
@@ -651,14 +661,14 @@ export default function AdminSpace({
                 <button
                   type="button"
                   onClick={() => setShowCreate(false)}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
                   Annuler
                 </button>
                 <button
                   type="button"
                   onClick={handleCreatePharmacy}
-                  className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-700"
+                  className={`rounded-xl bg-gradient-to-r ${primaryGrad} px-4 py-2 text-sm font-semibold text-white shadow-md shadow-black/10 transition-all duration-200 hover:-translate-y-px`}
                 >
                   Créer la pharmacie
                 </button>
@@ -666,7 +676,7 @@ export default function AdminSpace({
             </div>
           )}
           {data.pharmacies.length === 0 && !showCreate && (
-            <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+            <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
               Aucune pharmacie dans ce périmètre.
             </p>
           )}
@@ -676,27 +686,27 @@ export default function AdminSpace({
               return (
                 <div
                   key={pharmacy.id}
-                  className={`rounded-2xl border bg-white p-4 shadow-sm ${needsValidation ? 'border-amber-300' : 'border-slate-200'}`}
+                  className={`rounded-2xl border bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60 dark:bg-slate-900 dark:hover:shadow-slate-900/60 ${needsValidation ? 'border-amber-300 dark:border-amber-900' : 'border-slate-200 dark:border-slate-800'}`}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-bold text-slate-900">{pharmacy.name}</p>
-                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${pharmacy.verified ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                        <p className="font-bold text-slate-900 dark:text-slate-100">{pharmacy.name}</p>
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${pharmacy.verified ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200'}`}>
                           {pharmacy.verified ? 'Validée' : 'En attente de validation'}
                         </span>
-                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${pharmacy.accountStatus === 'actif' ? 'bg-slate-100 text-slate-700' : pharmacy.accountStatus === 'suspendu' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800'}`}>
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${pharmacy.accountStatus === 'actif' ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' : pharmacy.accountStatus === 'suspendu' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-200' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200'}`}>
                           {ACCOUNT_STATUS_LABELS[pharmacy.accountStatus]}
                         </span>
-                        <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
+                        <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-semibold text-violet-700 dark:bg-violet-950 dark:text-violet-200">
                           Quartier {pharmacy.quartier}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         {pharmacy.city} ({pharmacy.region}) · {pharmacy.address || 'Adresse à préciser'} ·{' '}
                         {pharmacy.phone} · Source : {pharmacy.source}
                       </p>
-                      <p className="mt-0.5 font-mono text-xs text-slate-400">
+                      <p className="mt-0.5 font-mono text-xs text-slate-400 dark:text-slate-500">
                         {pharmacy.latitude.toFixed(5)}, {pharmacy.longitude.toFixed(5)}
                       </p>
                     </div>
@@ -705,7 +715,7 @@ export default function AdminSpace({
                         <button
                           type="button"
                           onClick={() => setEditingId(null)}
-                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                         >
                           Annuler
                         </button>
@@ -713,7 +723,7 @@ export default function AdminSpace({
                         <button
                           type="button"
                           onClick={() => startEdit(pharmacy)}
-                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                         >
                           Modifier la fiche
                         </button>
@@ -725,7 +735,7 @@ export default function AdminSpace({
                           if (pharmacy.accountId) setAccountStatus(db, pharmacy.accountId, 'actif', label)
                         })}
                         disabled={!needsValidation}
-                        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                        className="rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-emerald-600/20 transition-all duration-200 hover:from-emerald-700 hover:to-teal-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:from-slate-200 disabled:to-slate-200 dark:disabled:from-slate-700 dark:disabled:to-slate-700 dark:disabled:text-slate-400 dark:disabled:shadow-none"
                       >
                         Valider
                       </button>
@@ -735,18 +745,18 @@ export default function AdminSpace({
                           if (pharmacy.accountId) setAccountStatus(db, pharmacy.accountId, 'suspendu', label)
                         })}
                         disabled={pharmacy.accountStatus === 'suspendu'}
-                        className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+                        className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300 dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950/50 dark:disabled:border-slate-700 dark:disabled:text-slate-500"
                       >
                         Suspendre
                       </button>
                     </div>
                   </div>
                   {editingId === pharmacy.id && (
-                    <div className="mt-4 rounded-xl border border-violet-200 bg-violet-50/40 p-4">
-                      <p className="text-xs font-bold text-slate-700">Modifier la fiche (nom, quartier, adresse, téléphone, GPS)</p>
+                    <div className="mt-4 rounded-xl border border-violet-200 bg-violet-50/40 p-4 dark:border-violet-900 dark:bg-violet-950/30">
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Modifier la fiche (nom, quartier, adresse, téléphone, GPS)</p>
                       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <label className="block">
-                          <span className="text-xs font-semibold text-slate-600">Nom</span>
+                          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Nom</span>
                           <input
                             aria-label="Nom de la pharmacie (édition)"
                             value={editDraft.name}
@@ -755,7 +765,7 @@ export default function AdminSpace({
                           />
                         </label>
                         <label className="block">
-                          <span className="text-xs font-semibold text-slate-600">Quartier</span>
+                          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Quartier</span>
                           <input
                             aria-label="Quartier de la pharmacie (édition)"
                             value={editDraft.quartier}
@@ -764,7 +774,7 @@ export default function AdminSpace({
                           />
                         </label>
                         <label className="block sm:col-span-2">
-                          <span className="text-xs font-semibold text-slate-600">Adresse</span>
+<span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Adresse</span>
                           <input
                             aria-label="Adresse de la pharmacie (édition)"
                             value={editDraft.address}
@@ -773,7 +783,7 @@ export default function AdminSpace({
                           />
                         </label>
                         <label className="block">
-                          <span className="text-xs font-semibold text-slate-600">Téléphone</span>
+                          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Téléphone</span>
                           <input
                             aria-label="Téléphone de la pharmacie (édition)"
                             value={editDraft.phone}
@@ -782,7 +792,7 @@ export default function AdminSpace({
                           />
                         </label>
                         <label className="block">
-                          <span className="text-xs font-semibold text-slate-600">Latitude</span>
+<span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Latitude</span>
                           <input
                             id="ep-lat"
                             type="number"
@@ -793,7 +803,7 @@ export default function AdminSpace({
                           />
                         </label>
                         <label className="block">
-                          <span className="text-xs font-semibold text-slate-600">Longitude</span>
+<span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Longitude</span>
                           <input
                             id="ep-lng"
                             type="number"
@@ -808,7 +818,7 @@ export default function AdminSpace({
                         <button
                           type="button"
                           onClick={() => setEditingId(null)}
-                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
                         >
                           Fermer
                         </button>
@@ -834,12 +844,14 @@ export default function AdminSpace({
           <SectionTitle
             title="Modération des signalements"
             subtitle="Classifier, vérifier, confirmer ou rejeter. Tout traitement est journalisé."
+            icon={<NavIcon name="flag" />}
+            accent={accent}
             chip={
               <select
                 value={reportFilter}
                 onChange={(event) => setReportFilter(event.target.value)}
                 aria-label="Filtrer par statut"
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-violet-500/20"
               >
                 <option value="">Tous les statuts</option>
                 {Object.entries(REPORT_STATUS_LABELS).map(([key, value]) => (
@@ -852,28 +864,28 @@ export default function AdminSpace({
           />
           <div className="space-y-4">
             {data.reports.length === 0 && (
-              <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+              <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
                 Aucun signalement dans ce périmètre / filtre.
               </p>
             )}
             {data.reports.map((report) => (
-              <div key={report.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div key={report.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900 dark:hover:shadow-slate-900/60">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-bold text-slate-900">{report.pharmacyName}</p>
-                    <span className="text-xs text-slate-400">· {report.city}</span>
-                    <span className="text-xs text-slate-400">· {REPORT_TYPE_LABELS[report.type] ?? report.type}</span>
+                    <p className="font-bold text-slate-900 dark:text-slate-100">{report.pharmacyName}</p>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">· {report.city}</span>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">· {REPORT_TYPE_LABELS[report.type] ?? report.type}</span>
                   </div>
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${statBadge(report.status)}`}>
                     {REPORT_STATUS_LABELS[report.status] ?? report.status}
                   </span>
                 </div>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">{report.description}</p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{report.description}</p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   {report.author} · {formatDateTime(report.createdAt)}
                 </p>
                 {report.response && (
-                  <p className="mt-2 rounded-lg bg-slate-50 p-3 text-xs italic text-slate-600">
+                  <p className="mt-2 rounded-lg bg-slate-50 p-3 text-xs italic text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
                     Réponse : {report.response}
                   </p>
                 )}
@@ -881,7 +893,7 @@ export default function AdminSpace({
                   <select
                     id={`report-status-${report.id}`}
                     defaultValue={report.status}
-                    className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:focus:ring-violet-500/20"
                   >
                     {Object.entries(REPORT_STATUS_LABELS).map(([key, value]) => (
                       <option key={key} value={key}>
@@ -896,7 +908,7 @@ export default function AdminSpace({
                       const next = select?.value ?? report.status
                       setReportStatusAdmin(db, report.id, next, null, label)
                     })}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors ${accent === 'violet' ? 'bg-violet-600 hover:bg-violet-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-black/10 transition-all duration-200 hover:-translate-y-px bg-gradient-to-r ${primaryGrad}`}
                   >
                     Appliquer
                   </button>
@@ -912,10 +924,12 @@ export default function AdminSpace({
           <SectionTitle
             title="Programmation / validation des gardes"
             subtitle="Publier ou masquer un créneau de garde. Les pharmacies gèrent leurs horaires ; ici vous contrôlez l’affichage public."
+            icon={<NavIcon name="calendar" />}
+            accent={accent}
             chip={scopeChip}
           />
           {groupedSchedules.length === 0 && (
-            <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+            <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
               Aucune garde programmée dans ce périmètre.
             </p>
           )}
@@ -945,71 +959,77 @@ export default function AdminSpace({
           <SectionTitle
             title="Utilisateurs & rôles"
             subtitle="Gestion complète des comptes : profils, rôles, zones, activation et suspension."
+            icon={<NavIcon name="users" />}
+            accent={accent}
             chip={scopeChip}
           />
-          <div className="rounded-2xl border border-violet-200 bg-violet-50/60 p-4">
-            <p className="text-sm font-bold text-slate-800">Créer un compte</p>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Le mot de passe est optionnel : s’il est vide, le compte reprend le mot de passe par
-              défaut ({DEMO_PASSWORD}). Les comptes pharmacie se créent dans l’onglet « Pharmacies ».
-            </p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <input
-                value={newAccount.name}
-                onChange={(event) => setNewAccount((prev) => ({ ...prev, name: event.target.value }))}
-                placeholder="Nom complet"
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-              />
-              <input
-                value={newAccount.email}
-                onChange={(event) => setNewAccount((prev) => ({ ...prev, email: event.target.value }))}
-                placeholder="email@exemple.cm"
-                type="email"
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-              />
-              <select
-                value={newAccount.role}
-                onChange={(event) => setNewAccount((prev) => ({ ...prev, role: event.target.value as BackOfficeRole }))}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-              >
-                {(['admin', 'super_admin'] as BackOfficeRole[]).map((r) => (
-                  <option key={r} value={r}>
-                    {ROLE_LABELS[r]}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={newAccount.city}
-                onChange={(event) => setNewAccount((prev) => ({ ...prev, city: event.target.value }))}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-              >
-                <option value="">Aucune zone (national)</option>
-                {data.cities.map((c) => (
-                  <option key={c.name} value={c.name}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                value={newAccount.password}
-                onChange={(event) => setNewAccount((prev) => ({ ...prev, password: event.target.value }))}
-                placeholder="Mot de passe (8 caractères min.)"
-                type="password"
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-              />
+          <div className="overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-sm dark:border-violet-900 dark:bg-slate-900">
+            <div className="border-b border-violet-100 bg-gradient-to-r from-violet-50 to-fuchsia-50 px-5 py-4 dark:border-violet-900 dark:from-slate-900 dark:to-slate-900">
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Créer un compte</p>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                Le mot de passe est optionnel : s’il est vide, le compte reprend le mot de passe par
+                défaut ({DEMO_PASSWORD}). Les comptes pharmacie se créent dans l’onglet « Pharmacies ».
+              </p>
             </div>
-            <button
-              type="button"
-              onClick={handleCreateAccount}
-              className="mt-3 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-700"
-            >
-              Créer le compte
-            </button>
+            <div className="p-5">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                <input
+                  value={newAccount.name}
+                  onChange={(event) => setNewAccount((prev) => ({ ...prev, name: event.target.value }))}
+                  placeholder="Nom complet"
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                />
+                <input
+                  value={newAccount.email}
+                  onChange={(event) => setNewAccount((prev) => ({ ...prev, email: event.target.value }))}
+                  placeholder="email@exemple.cm"
+                  type="email"
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                />
+                <select
+                  value={newAccount.role}
+                  onChange={(event) => setNewAccount((prev) => ({ ...prev, role: event.target.value as BackOfficeRole }))}
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                >
+                  {(['admin', 'super_admin'] as BackOfficeRole[]).map((r) => (
+                    <option key={r} value={r}>
+                      {ROLE_LABELS[r]}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={newAccount.city}
+                  onChange={(event) => setNewAccount((prev) => ({ ...prev, city: event.target.value }))}
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                >
+                  <option value="">Aucune zone (national)</option>
+                  {data.cities.map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  value={newAccount.password}
+                  onChange={(event) => setNewAccount((prev) => ({ ...prev, password: event.target.value }))}
+                  placeholder="Mot de passe (8 caractères min.)"
+                  type="password"
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/15 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleCreateAccount}
+                className={`mt-4 rounded-xl bg-gradient-to-r ${primaryGrad} px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-black/10 transition-all duration-200 hover:-translate-y-px`}
+              >
+                Créer le compte
+              </button>
+            </div>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400">
                 <tr>
                   <th className="px-4 py-3">Compte</th>
                   <th className="px-4 py-3">Rôle</th>
@@ -1018,13 +1038,13 @@ export default function AdminSpace({
                   <th className="px-4 py-3">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {data.users.map((user) => (
-                  <tr key={user.id}>
+                  <tr key={user.id} className="transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/50">
                     <td className="px-4 py-3">
-                      <p className="font-semibold text-slate-800">{user.name}</p>
-                      <p className="text-xs text-slate-400">Nom d’utilisateur : {user.username || '—'}</p>
-                      <p className="text-xs text-slate-500">{user.email}</p>
+                      <p className="font-semibold text-slate-800 dark:text-slate-100">{user.name}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">Nom d’utilisateur : {user.username || '—'}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
                     </td>
                     <td className="px-4 py-3">
                       <select
@@ -1035,7 +1055,7 @@ export default function AdminSpace({
                             updateUserRole(db, user.id, event.target.value as BackOfficeRole, label),
                           )
                         }
-                        className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                        className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:focus:ring-violet-500/20"
                       >
                         {(Object.keys(ROLE_LABELS) as BackOfficeRole[]).map((r) => (
                           <option key={r} value={r}>
@@ -1044,11 +1064,11 @@ export default function AdminSpace({
                         ))}
                       </select>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-600">
+                    <td className="px-4 py-3 text-xs text-slate-600 dark:text-slate-400">
                       {user.role === 'admin' ? user.city ?? '—' : user.role === 'pharmacie' ? user.pharmacyName ?? '—' : 'Toutes les villes'}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${user.status === 'actif' ? 'bg-emerald-100 text-emerald-800' : user.status === 'suspendu' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800'}`}>
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${user.status === 'actif' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200' : user.status === 'suspendu' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-200' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200'}`}>
                         {ACCOUNT_STATUS_LABELS[user.status]}
                       </span>
                     </td>
@@ -1057,7 +1077,7 @@ export default function AdminSpace({
                         <button
                           type="button"
                           onClick={() => run('Compte suspendu.', () => setAccountStatus(db, user.id, 'suspendu', label))}
-                          className="rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50"
+                          className="rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50 dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950/50"
                         >
                           Suspendre
                         </button>
@@ -1084,11 +1104,13 @@ export default function AdminSpace({
           <SectionTitle
             title="Journal d’audit"
             subtitle="Traçabilité systématique des actions sensibles : acteur, ressource, horodatage."
+            icon={<NavIcon name="list" />}
+            accent={accent}
             chip={scopeChip}
           />
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400">
                 <tr>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Acteur</th>
@@ -1097,21 +1119,21 @@ export default function AdminSpace({
                   <th className="px-4 py-3">Détail</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {data.audit.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                    <td colSpan={5} className="px-4 py-6 text-center text-slate-500 dark:text-slate-400">
                       Aucune entrée pour l’instant.
                     </td>
                   </tr>
                 )}
                 {data.audit.map((entry) => (
-                  <tr key={entry.id}>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-xs text-slate-500">{formatDateTime(entry.timestamp)}</td>
-                    <td className="px-4 py-2.5 font-medium text-slate-800">{entry.actor}</td>
-                    <td className="px-4 py-2.5 text-slate-700">{ACTION_LABELS[entry.action] ?? entry.action}</td>
-                    <td className="px-4 py-2.5 font-mono text-xs text-slate-500">{entry.resource}</td>
-                    <td className="px-4 py-2.5 text-xs text-slate-500">{entry.metadata ?? '—'}</td>
+                  <tr key={entry.id} className="transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/50">
+                    <td className="whitespace-nowrap px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400">{formatDateTime(entry.timestamp)}</td>
+                    <td className="px-4 py-2.5 font-medium text-slate-800 dark:text-slate-100">{entry.actor}</td>
+                    <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">{ACTION_LABELS[entry.action] ?? entry.action}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs text-slate-500 dark:text-slate-400">{entry.resource}</td>
+                    <td className="px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400">{entry.metadata ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1125,18 +1147,20 @@ export default function AdminSpace({
           <SectionTitle
             title="Paramètres & sécurité"
             subtitle="Configuration de la plateforme — uniquement accessible au super administrateur."
+            icon={<NavIcon name="gear" />}
+            accent={accent}
             chip={scopeChip}
           />
           {(
             [
-              ['Ville pilote', 'Yaoundé et Douala sont marquées comme villes pilotes. La réplication vers d’autres chefs-lieux est prévue sans refonte (architecture multi-villes).'],
-              ['Sécurité', 'En production (API Node.js) : JWT avec expiration et rotation, mots de passe hachés (bcrypt), rate limiting, contrôle d’accès par rôle et appartenance de ressource côté serveur. En démo locale, les actions restent tracées dans le journal d’audit du navigateur.'],
-              ['Sauvegardes', 'La base locale (SQLite web) est persistée dans le navigateur. La stratégie chiffrée et le plan de restauration testé arrivent avec le déploiement backend.'],
-              ['Périmètre & arbitrage', 'Le contrôle d’accès est appliqué à trois niveaux (route, service métier, donnée). L’arbitrage sur toutes les villes s’effectue depuis ce compte. ' + ROLE_PERIMETERS.super_admin],
-            ] as [string, string][]
-          ).map(([title, body]) => (
-            <Panel key={title} title={title}>
-              <p className="text-sm leading-relaxed text-slate-600">{body}</p>
+              ['Ville pilote', 'pin', 'Yaoundé et Douala sont marquées comme villes pilotes. La réplication vers d’autres chefs-lieux est prévue sans refonte (architecture multi-villes).'],
+              ['Sécurité', 'shield', 'En production (API Node.js) : JWT avec expiration et rotation, mots de passe hachés (bcrypt), rate limiting, contrôle d’accès par rôle et appartenance de ressource côté serveur. En démo locale, les actions restent tracées dans le journal d’audit du navigateur.'],
+              ['Sauvegardes', 'refresh', 'La base locale (SQLite web) est persistée dans le navigateur. La stratégie chiffrée et le plan de restauration testé arrivent avec le déploiement backend.'],
+              ['Périmètre & arbitrage', 'check', 'Le contrôle d’accès est appliqué à trois niveaux (route, service métier, donnée). L’arbitrage sur toutes les villes s’effectue depuis ce compte. ' + ROLE_PERIMETERS.super_admin],
+            ] as [string, string, string][]
+          ).map(([title, icon, body]) => (
+            <Panel key={title} title={title} icon={<NavIcon name={icon} />} accent={accent}>
+              <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">{body}</p>
             </Panel>
           ))}
         </div>
@@ -1154,10 +1178,12 @@ function ScheduleGroup({
 }) {
   const pharmacy = data[0]
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900 dark:hover:shadow-slate-900/60">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-bold text-slate-900">{pharmacy.pharmacyName}</p>
-        <p className="text-xs text-slate-500">{pharmacy.city}</p>
+        <p className="font-bold text-slate-900 dark:text-slate-100">{pharmacy.pharmacyName}</p>
+        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          {pharmacy.city}
+        </span>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
         {data.map((schedule) => (
@@ -1165,13 +1191,18 @@ function ScheduleGroup({
             key={schedule.id}
             type="button"
             onClick={() => onToggle(schedule)}
-            className={`rounded-lg border p-2 text-left transition-colors ${schedule.status === 'publie' ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50 opacity-60'}`}
+            aria-pressed={schedule.status === 'publie'}
+            className={`rounded-lg border p-2 text-left transition-all duration-200 ${
+              schedule.status === 'publie'
+                ? 'border-emerald-200 bg-emerald-50 hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-950/50 dark:hover:bg-emerald-950'
+                : 'border-slate-200 bg-slate-50 opacity-60 hover:opacity-100 dark:border-slate-700 dark:bg-slate-800'
+            }`}
           >
-            <p className="text-xs font-bold text-slate-800">{WEEKDAYS[schedule.weekday]}</p>
-            <p className="text-[11px] text-slate-600">
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{WEEKDAYS[schedule.weekday]}</p>
+            <p className="text-[11px] text-slate-600 dark:text-slate-400">
               {formatHour(schedule.start)}h→{formatHour(schedule.end)}h
             </p>
-            <p className={`mt-1 text-[10px] font-semibold ${schedule.status === 'publie' ? 'text-emerald-700' : 'text-slate-400'}`}>
+            <p className={`mt-1 text-[10px] font-semibold ${schedule.status === 'publie' ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
               {schedule.status === 'publie' ? 'Publiée' : 'Masquée'}
             </p>
           </button>

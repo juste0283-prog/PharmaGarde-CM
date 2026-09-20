@@ -96,13 +96,13 @@ const STEPS: Step[] = [
 
 export default function HowItWorks() {
   return (
-    <section id="comment" className="scroll-mt-20 bg-white py-16 sm:py-20">
+    <section id="comment" className="scroll-mt-20 bg-white py-16 dark:bg-slate-900 sm:py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">
+          <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
             Comment ça marche ?
           </h2>
-          <p className="mt-3 text-slate-600">
+          <p className="mt-3 text-slate-600 dark:text-slate-400">
             Un parcours court : ville ou position, recherche, vérification, action.
           </p>
         </div>
@@ -110,14 +110,14 @@ export default function HowItWorks() {
         <ol className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((step, index) => (
             <li key={step.title} className="relative">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-900">
                 {step.icon}
               </div>
-              <p className="mt-4 text-xs font-bold uppercase tracking-wider text-emerald-600">
+              <p className="mt-4 text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                 Étape {index + 1}
               </p>
-              <h3 className="mt-1 text-lg font-bold text-slate-900">{step.title}</h3>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+              <h3 className="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100">{step.title}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
                 {step.description}
               </p>
             </li>

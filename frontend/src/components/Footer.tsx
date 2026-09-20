@@ -6,7 +6,7 @@ const FOOTER_COLUMNS: { heading: string; links: string[] }[] = [
 
 export default function Footer({ onOpenSpace }: { onOpenSpace: () => void }) {
   return (
-    <footer className="border-t border-slate-200 bg-white">
+    <footer className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <div className="grid gap-10 md:grid-cols-4">
           <div className="md:col-span-2">
@@ -31,7 +31,7 @@ export default function Footer({ onOpenSpace }: { onOpenSpace: () => void }) {
                 PharmaGarde&nbsp;<span className="text-emerald-600">CM</span>
               </span>
             </a>
-            <p className="mt-4 max-w-md text-sm leading-relaxed text-slate-600">
+            <p className="mt-4 max-w-md text-sm leading-relaxed text-slate-600 dark:text-slate-400">
               La plateforme de recherche, de vérification et de confirmation des
               pharmacies de garde au Cameroun. Une information actualisée,
               vérifiable et accessible, ville pilote après ville pilote.
@@ -40,7 +40,7 @@ export default function Footer({ onOpenSpace }: { onOpenSpace: () => void }) {
 
           {FOOTER_COLUMNS.map((column) => (
             <div key={column.heading}>
-              <h3 className="text-sm font-bold text-slate-900">{column.heading}</h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{column.heading}</h3>
               <ul className="mt-4 space-y-2.5">
                 {column.links.map((link) => (
                   <li key={link}>
@@ -48,12 +48,12 @@ export default function Footer({ onOpenSpace }: { onOpenSpace: () => void }) {
                       <button
                         type="button"
                         onClick={onOpenSpace}
-                        className="text-sm text-slate-600 transition-colors hover:text-emerald-700"
+                        className="text-sm text-slate-600 transition-colors hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-400"
                       >
                         {link}
                       </button>
                     ) : (
-                      <a href="#" className="text-sm text-slate-600 transition-colors hover:text-emerald-700">
+                      <a href="#" className="text-sm text-slate-600 transition-colors hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-400">
                         {link}
                       </a>
                     )}
@@ -64,7 +64,7 @@ export default function Footer({ onOpenSpace }: { onOpenSpace: () => void }) {
           ))}
         </div>
 
-        <div className="mt-10 border-t border-slate-200 pt-6 text-xs leading-relaxed text-slate-500">
+        <div className="mt-10 border-t border-slate-200 pt-6 text-xs leading-relaxed text-slate-500 dark:border-slate-800 dark:text-slate-400">
           <p>
             La confirmation de garde est un signal de confiance horodaté, jamais
             une certitude absolue d'ouverture. Avant tout déplacement,

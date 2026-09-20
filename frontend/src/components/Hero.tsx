@@ -67,7 +67,7 @@ export default function Hero({ cities, city, onCityChange, onPositionChange }: H
           une pharmacie fermée.
         </p>
 
-        <div className="mx-auto mt-10 max-w-3xl rounded-2xl bg-white p-2 shadow-2xl sm:p-3">
+        <div className="mx-auto mt-10 max-w-3xl rounded-2xl bg-white p-2 shadow-2xl dark:bg-slate-900 sm:p-3">
           <form
             className="flex flex-col gap-2 sm:flex-row"
             onSubmit={(event) => {
@@ -79,7 +79,7 @@ export default function Hero({ cities, city, onCityChange, onPositionChange }: H
               <label htmlFor="ville" className="sr-only">
                 Ville
               </label>
-              <div className="flex flex-1 items-center gap-2 rounded-xl px-3 py-2 text-left text-slate-800 sm:border-r sm:border-slate-200">
+              <div className="flex flex-1 items-center gap-2 rounded-xl px-3 py-2 text-left text-slate-800 dark:text-slate-100 sm:border-r sm:border-slate-200 sm:dark:border-slate-700">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -139,12 +139,12 @@ export default function Hero({ cities, city, onCityChange, onPositionChange }: H
           </form>
 
           <div className="flex items-center gap-3 px-2 py-2 sm:px-3">
-            <div className="h-px flex-1 bg-slate-200" aria-hidden="true" />
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" aria-hidden="true" />
             <button
               type="button"
               onClick={locate}
               disabled={geo.status === 'locating'}
-              className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-60 dark:text-emerald-400 dark:hover:bg-emerald-950"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -165,16 +165,16 @@ export default function Hero({ cities, city, onCityChange, onPositionChange }: H
               </svg>
               {geo.status === 'locating' ? 'Localisation…' : "Utiliser ma position"}
             </button>
-            <div className="h-px flex-1 bg-slate-200" aria-hidden="true" />
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" aria-hidden="true" />
           </div>
 
           {geo.status === 'success' && (
-            <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
+            <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
               {geo.label}
             </p>
           )}
           {geo.status === 'error' && (
-            <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-800">{geo.message}</p>
+            <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-800 dark:bg-rose-950 dark:text-rose-200">{geo.message}</p>
           )}
         </div>
 
